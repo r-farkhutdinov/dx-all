@@ -1,7 +1,7 @@
 /*!
 * DevExtreme (dx.all.js)
 * Version: 25.2.0
-* Build date: Tue Oct 28 2025
+* Build date: Fri Oct 31 2025
 *
 * Copyright (c) 2012 - 2025 Developer Express Inc. ALL RIGHTS RESERVED
 * Read about DevExtreme licensing here: https://js.devexpress.com/Licensing/
@@ -39074,6 +39074,11 @@ _m_core.default.registerModule('aiColumn', {
   },
   views: {
     aiColumnView: _m_ai_column_view.AIColumnView
+  },
+  extenders: {
+    views: {
+      columnHeadersView: _m_ai_column_view.columnHeadersViewExtender
+    }
   }
 });
 
@@ -41791,11 +41796,35 @@ exports.isPromptChanged = isPromptChanged;
 Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
-exports.CLASSES = exports.AI_COLUMN_NAME = void 0;
+exports.CLASSES = exports.AI_COLUMN_NAME = exports.AI_CHAT_SPARKLE_OUTLINE = void 0;
 const AI_COLUMN_NAME = exports.AI_COLUMN_NAME = 'ai';
+const AI_CHAT_SPARKLE_OUTLINE = exports.AI_CHAT_SPARKLE_OUTLINE = 'chatsparkleoutline';
 const CLASSES = exports.CLASSES = {
-  aiColumn: 'dx-command-ai'
+  aiColumn: 'dx-command-ai',
+  aiColumnHeaderContent: 'dx-command-ai-header-content',
+  aiColumnHeaderButton: 'dx-command-ai-header-button',
+  aiChatSparkleOutlineIcon: 'dx-icon-chatsparkleoutline'
 };
+
+/***/ }),
+
+/***/ 32333:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+
+Object.defineProperty(exports, "__esModule", ({
+  value: true
+}));
+exports.createChatSparkleOutlineIcon = exports.createAIHeaderContainer = void 0;
+var _renderer = _interopRequireDefault(__webpack_require__(64553));
+var _icon = __webpack_require__(69629);
+var _const = __webpack_require__(92806);
+function _interopRequireDefault(e) { return e && e.__esModule ? e : { default: e }; }
+const createChatSparkleOutlineIcon = () => (0, _icon.getImageContainer)(_const.AI_CHAT_SPARKLE_OUTLINE);
+exports.createChatSparkleOutlineIcon = createChatSparkleOutlineIcon;
+const createAIHeaderContainer = () => (0, _renderer.default)('<div>').addClass(_const.CLASSES.aiColumnHeaderContent);
+exports.createAIHeaderContainer = createAIHeaderContainer;
 
 /***/ }),
 
@@ -41854,10 +41883,15 @@ class AIColumnController extends _m_modules.Controller {
   showResults(columnName, result, cachedData) {
     // Update the results in the UI or internal state
   }
+  getAIColumns() {
+    return this.columnsController.getColumns().filter(col => col.type === 'ai');
+  }
   handleDataChanged(e) {
-    const aiColumns = this.columnsController.getColumns().filter(col => col.type === 'ai' && (0, _utils.isAIColumnAutoMode)(col));
+    const aiColumns = this.getAIColumns();
     for (const col of aiColumns) {
-      this.refreshAIColumn(col.name);
+      if ((0, _utils.isAIColumnAutoMode)(col)) {
+        this.refreshAIColumn(col.name);
+      }
     }
   }
   // API methods
@@ -41988,11 +42022,10 @@ class AIColumnIntegrationController extends _m_modules.Controller {
           const args = {
             column,
             error: null,
-            data: finalResponse.data,
-            additionalInfo: finalResponse.additionalInfo
+            data: finalResponse.data
           };
           this.executeAction('onAIColumnResponseReceived', args);
-          this.showResult(columnName, finalResponse, cachedResponse);
+          this.showResult(columnName, finalResponse.data, cachedResponse);
           this.processCommandCompletion(columnName);
           callBacks === null || callBacks === void 0 || (_callBacks$onComplete = callBacks.onComplete) === null || _callBacks$onComplete === void 0 || _callBacks$onComplete.call(callBacks, finalResponse);
         }
@@ -42003,8 +42036,7 @@ class AIColumnIntegrationController extends _m_modules.Controller {
         this.executeAction('onAIColumnResponseReceived', {
           column,
           error: message,
-          data: null,
-          additionalInfo: undefined
+          data: null
         });
         this.showError(message);
         this.processCommandCompletion(columnName);
@@ -42057,20 +42089,24 @@ exports.AIColumnIntegrationController = AIColumnIntegrationController;
 Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
-exports.AIColumnView = void 0;
+exports.columnHeadersViewExtender = exports.AIColumnView = void 0;
 var _renderer = _interopRequireDefault(__webpack_require__(64553));
+var _drop_down_button = _interopRequireDefault(__webpack_require__(56582));
 var _m_dom_adapter = _interopRequireDefault(__webpack_require__(62018));
+var _m_columns_controller_utils = __webpack_require__(63904);
 var _m_modules = __webpack_require__(74854);
 var _ai_prompt_editor = __webpack_require__(31206);
 var _const = __webpack_require__(92806);
+var _dom = __webpack_require__(32333);
 var _utils = __webpack_require__(40208);
 function _interopRequireDefault(e) { return e && e.__esModule ? e : { default: e }; }
+function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
 class AIColumnView extends _m_modules.View {
   addAICommandColumn() {
-    this.columnsController.addCommandColumn((0, _utils.getAICommandColumnOptions)());
+    this.columnsController.addCommandColumn((0, _utils.getAICommandColumnDefaultOptions)());
   }
-  getAIPromptEditorConfig($cellElement, column) {
-    var _column$ai;
+  getAIPromptEditorConfig(column) {
+    var _column$ai, _column$ai2, _column$ai3;
     const alignment = column.alignment === 'right' ? 'left' : 'right';
     const visibleIndex = this.columnsController.getVisibleIndex(column.index);
     return {
@@ -42089,7 +42125,7 @@ class AIColumnView extends _m_modules.View {
         this.promptEditorInstance.updateStateOnAction('regenerate');
         this.aiColumnController.refreshAIColumn(column.name);
       },
-      popupOptions: {
+      popupOptions: _extends({
         container: _m_dom_adapter.default.getBody(),
         onHiding: () => {
           this.promptEditorInstance.updateStateOnAction('stop');
@@ -42098,12 +42134,21 @@ class AIColumnView extends _m_modules.View {
         position: {
           my: `${alignment} top`,
           at: `${alignment} bottom`,
-          of: `.dx-header-row td[aria-colindex="${visibleIndex + 1}"]`,
+          of: (0, _m_columns_controller_utils.getColumnHeaderCellSelector)(visibleIndex),
           collision: 'fit',
           boundary: this.component.element()
         }
-      }
+      }, (_column$ai2 = column.ai) === null || _column$ai2 === void 0 ? void 0 : _column$ai2.popup),
+      editorOptions: _extends({}, (_column$ai3 = column.ai) === null || _column$ai3 === void 0 ? void 0 : _column$ai3.editorOptions)
     };
+  }
+  updatePromptEditorInstance(column) {
+    const config = this.getAIPromptEditorConfig(column);
+    if (!this.promptEditorInstance) {
+      this.promptEditorInstance = new _ai_prompt_editor.AIPromptEditor(config);
+    } else {
+      this.promptEditorInstance.updateOptions(config);
+    }
   }
   // TODO: support changing all columns and the entire column
   optionChanged(args) {
@@ -42116,8 +42161,31 @@ class AIColumnView extends _m_modules.View {
       return;
     }
     const columnOptionName = this.columnsController.getColumnOptionNameByFullName(args.fullName);
-    if (columnOptionName === 'ai.prompt' && (0, _utils.isAIColumnAutoMode)(column)) {
+    const isPromptOptionName = (0, _utils.isPromptOption)(columnOptionName, args.value);
+    if (isPromptOptionName) {
+      var _this$promptEditorIns;
+      (_this$promptEditorIns = this.promptEditorInstance) === null || _this$promptEditorIns === void 0 || _this$promptEditorIns.updatePrompt(args.value);
+    }
+    if (isPromptOptionName && (0, _utils.isAIColumnAutoMode)(column)) {
       this.aiColumnController.sendAIColumnRequest(column.name);
+    }
+    const needUpdatePopup = (0, _utils.isPopupOptions)(columnOptionName, args.value);
+    const needUpdateEditor = (0, _utils.isEditorOptions)(columnOptionName, args.value);
+    if (needUpdatePopup || needUpdateEditor) {
+      this.updatePromptEditorInstance(column);
+    }
+    if ((0, _utils.isRefreshOption)(columnOptionName, args.value)) {
+      // TODO: this.component.refresh();
+    }
+  }
+  ensureAIPromptEditorVisibility() {
+    const aiColumns = this.aiColumnController.getAIColumns();
+    const aiColumnsWithVisiblePopup = aiColumns.filter(column => {
+      var _column$ai4;
+      return (_column$ai4 = column.ai) === null || _column$ai4 === void 0 || (_column$ai4 = _column$ai4.popup) === null || _column$ai4 === void 0 ? void 0 : _column$ai4.visible;
+    });
+    if (aiColumnsWithVisiblePopup.length > 0) {
+      this.updatePromptEditorInstance(aiColumnsWithVisiblePopup[0]);
     }
   }
   init() {
@@ -42125,13 +42193,16 @@ class AIColumnView extends _m_modules.View {
     this.aiColumnController = this.getController('aiColumn');
     this.addAICommandColumn();
     this.aiColumnController.aiRequestCompleted.add(() => {
-      var _this$promptEditorIns, _this$promptEditorIns2;
-      (_this$promptEditorIns = this.promptEditorInstance) === null || _this$promptEditorIns === void 0 || _this$promptEditorIns.updatePrompt(this.promptEditorInstance.getEditorValue());
-      (_this$promptEditorIns2 = this.promptEditorInstance) === null || _this$promptEditorIns2 === void 0 || _this$promptEditorIns2.updateStateOnAction('stop');
+      var _this$promptEditorIns2, _this$promptEditorIns3;
+      (_this$promptEditorIns2 = this.promptEditorInstance) === null || _this$promptEditorIns2 === void 0 || _this$promptEditorIns2.updatePrompt(this.promptEditorInstance.getEditorValue());
+      (_this$promptEditorIns3 = this.promptEditorInstance) === null || _this$promptEditorIns3 === void 0 || _this$promptEditorIns3.updateStateOnAction('stop');
     });
     this.aiColumnController.aiRequestRejected.add(() => {
-      var _this$promptEditorIns3;
-      (_this$promptEditorIns3 = this.promptEditorInstance) === null || _this$promptEditorIns3 === void 0 || _this$promptEditorIns3.updateStateOnAction('stop');
+      var _this$promptEditorIns4;
+      (_this$promptEditorIns4 = this.promptEditorInstance) === null || _this$promptEditorIns4 === void 0 || _this$promptEditorIns4.updateStateOnAction('stop');
+    });
+    this.renderCompleted.add(() => {
+      this.ensureAIPromptEditorVisibility();
     });
   }
   showPromptEditor(cellElement, column) {
@@ -42139,23 +42210,66 @@ class AIColumnView extends _m_modules.View {
     if (!($cellElement !== null && $cellElement !== void 0 && $cellElement.length) || (column === null || column === void 0 ? void 0 : column.type) !== _const.AI_COLUMN_NAME) {
       return Promise.resolve(false);
     }
-    const config = this.getAIPromptEditorConfig($cellElement, column);
-    if (!this.promptEditorInstance) {
-      this.promptEditorInstance = new _ai_prompt_editor.AIPromptEditor(config);
-    } else {
-      this.promptEditorInstance.updateOptions(config);
-    }
+    this.updatePromptEditorInstance(column);
     return this.promptEditorInstance.show();
   }
   hidePromptEditor() {
-    var _this$promptEditorIns4;
-    return (_this$promptEditorIns4 = this.promptEditorInstance) === null || _this$promptEditorIns4 === void 0 ? void 0 : _this$promptEditorIns4.hide();
+    var _this$promptEditorIns5;
+    return (_this$promptEditorIns5 = this.promptEditorInstance) === null || _this$promptEditorIns5 === void 0 ? void 0 : _this$promptEditorIns5.hide();
   }
   getPromptEditorInstance() {
     return this.promptEditorInstance;
   }
 }
 exports.AIColumnView = AIColumnView;
+const columnHeadersViewExtender = Base => class AIColumnHeadersViewExtender extends Base {
+  getDropDownButtonConfig() {
+    return {
+      showArrowIcon: false,
+      icon: 'overflow',
+      stylingMode: 'text'
+    };
+  }
+  renderHeaderDropDownButton($container) {
+    const $dropDownButton = (0, _renderer.default)('<div>').addClass(_const.CLASSES.aiColumnHeaderButton).appendTo($container);
+    this._createComponent($dropDownButton, _drop_down_button.default, this.getDropDownButtonConfig());
+  }
+  renderAIHeader($container, column) {
+    const $iconElement = (0, _dom.createChatSparkleOutlineIcon)();
+    const $aiHeaderContainer = (0, _dom.createAIHeaderContainer)();
+    const $cellContent = this.createCellContent($container, column);
+    $cellContent.text(column.caption ?? '');
+    $aiHeaderContainer.append($iconElement).append($cellContent).appendTo($container);
+  }
+  getHeaderDefaultTemplate($container, options) {
+    if ((0, _utils.isAIColumnHeader)(options.column, options.rowType)) {
+      this.renderAIHeader($container, options.column);
+      return;
+    }
+    super.getHeaderDefaultTemplate($container, options);
+  }
+  _processTemplate(template, options) {
+    const renderingTemplate = super._processTemplate(template, options);
+    const needToRenderHeaderDropDownButton = (0, _utils.isAIColumnHeader)(options.column, options.rowType) && (0, _utils.isHeaderDropDownButtonVisible)(options.column);
+    if (renderingTemplate && needToRenderHeaderDropDownButton) {
+      return {
+        render: options => {
+          renderingTemplate.render(options);
+          this.renderHeaderDropDownButton((0, _renderer.default)(options.container));
+        }
+      };
+    }
+    return renderingTemplate;
+  }
+  renderDragCellContent($dragContainer, column) {
+    if (column.type === _const.AI_COLUMN_NAME) {
+      this.renderAIHeader($dragContainer, column);
+      return;
+    }
+    super.renderDragCellContent($dragContainer, column);
+  }
+};
+exports.columnHeadersViewExtender = columnHeadersViewExtender;
 
 /***/ }),
 
@@ -42167,15 +42281,17 @@ exports.AIColumnView = AIColumnView;
 Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
-exports.reduceDataCachedKeys = exports.isAIColumnAutoMode = exports.getDataFromRowItems = exports.getAICommandColumnOptions = void 0;
+exports.reduceDataCachedKeys = exports.isRefreshOption = exports.isPromptOption = exports.isPopupOptions = exports.isHeaderDropDownButtonVisible = exports.isEditorOptions = exports.isAIColumnHeader = exports.isAIColumnAutoMode = exports.getDataFromRowItems = exports.getAICommandColumnDefaultOptions = void 0;
+var _m_type = __webpack_require__(39918);
 var _const = __webpack_require__(92806);
-const getAICommandColumnOptions = () => ({
+const getAICommandColumnDefaultOptions = () => ({
   type: _const.AI_COLUMN_NAME,
   command: _const.AI_COLUMN_NAME,
   cssClass: _const.CLASSES.aiColumn,
-  fixed: false
+  fixed: false,
+  minWidth: 120
 });
-exports.getAICommandColumnOptions = getAICommandColumnOptions;
+exports.getAICommandColumnDefaultOptions = getAICommandColumnDefaultOptions;
 const getDataFromRowItems = items => items.filter(row => row.rowType === 'data').map(row => row.data);
 exports.getDataFromRowItems = getDataFromRowItems;
 const reduceDataCachedKeys = (data, cachedData, keyField) => {
@@ -42194,6 +42310,32 @@ const isAIColumnAutoMode = column => {
   return column.type === 'ai' && (!((_column$ai = column.ai) !== null && _column$ai !== void 0 && _column$ai.mode) || column.ai.mode === 'auto');
 };
 exports.isAIColumnAutoMode = isAIColumnAutoMode;
+const isPopupOptions = (optionName, value) => optionName.startsWith('ai.popup') || optionName === 'ai' && (0, _m_type.isDefined)(value === null || value === void 0 ? void 0 : value.popup);
+exports.isPopupOptions = isPopupOptions;
+const isEditorOptions = (optionName, value) => optionName.startsWith('ai.editorOptions') || optionName === 'ai' && (0, _m_type.isDefined)(value === null || value === void 0 ? void 0 : value.editorOptions);
+exports.isEditorOptions = isEditorOptions;
+const isPromptOption = (optionName, value) => optionName === 'ai.prompt' || optionName === 'ai' && (0, _m_type.isDefined)(value === null || value === void 0 ? void 0 : value.prompt);
+exports.isPromptOption = isPromptOption;
+const isRefreshOption = (optionName, value) => {
+  const refreshOptionNames = ['showHeaderMenu', 'noDataText', 'emptyText'];
+  const matchesName = refreshOptionNames.map(n => `ai.${n}`).includes(optionName);
+  if (matchesName) {
+    return true;
+  }
+  if (optionName !== 'ai') {
+    return false;
+  }
+  const valueKeys = Object.keys(value);
+  return valueKeys.some(key => refreshOptionNames.includes(key));
+};
+exports.isRefreshOption = isRefreshOption;
+const isAIColumnHeader = (column, rowType) => rowType === 'header' && column.type === _const.AI_COLUMN_NAME;
+exports.isAIColumnHeader = isAIColumnHeader;
+const isHeaderDropDownButtonVisible = column => {
+  var _column$ai2;
+  return (column === null || column === void 0 || (_column$ai2 = column.ai) === null || _column$ai2 === void 0 ? void 0 : _column$ai2.showHeaderMenu) !== false;
+};
+exports.isHeaderDropDownButtonVisible = isHeaderDropDownButtonVisible;
 
 /***/ }),
 
@@ -43746,6 +43888,21 @@ const columnFixingModule = exports.columnFixingModule = {
 
 /***/ }),
 
+/***/ 10508:
+/***/ (function(__unused_webpack_module, exports) {
+
+
+
+Object.defineProperty(exports, "__esModule", ({
+  value: true
+}));
+exports.CLASSES = void 0;
+const CLASSES = exports.CLASSES = {
+  cellContent: 'text-content'
+};
+
+/***/ }),
+
 /***/ 88568:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
@@ -43768,8 +43925,8 @@ var _m_column_context_menu_mixin = __webpack_require__(16217);
 var _const = __webpack_require__(91066);
 var _m_accessibility = __webpack_require__(68491);
 var _m_columns_view = __webpack_require__(48921);
+var _const2 = __webpack_require__(10508);
 function _interopRequireDefault(e) { return e && e.__esModule ? e : { default: e }; }
-const CELL_CONTENT_CLASS = 'text-content';
 const HEADERS_CLASS = 'headers';
 const NOWRAP_CLASS = 'nowrap';
 const ROW_CLASS_SELECTOR = '.dx-row';
@@ -43787,28 +43944,33 @@ const HEADER_FILTER_CLASS_SELECTOR = '.dx-header-filter';
 const HEADER_FILTER_INDICATOR_CLASS = 'dx-header-filter-indicator';
 const MULTI_ROW_HEADER_CLASS = 'dx-header-multi-row';
 const LINK = 'dx-link';
-const createCellContent = function (that, $cell, options) {
-  const $cellContent = (0, _renderer.default)('<div>').addClass(that.addWidgetPrefix(CELL_CONTENT_CLASS));
-  that.setAria('role', 'presentation', $cellContent);
-  addCssClassesToCellContent(that, $cell, options.column, $cellContent);
-  const showColumnLines = that.option('showColumnLines');
-  // TODO getController
-  const contentAlignment = that.getController('columns').getHeaderContentAlignment(options.column.alignment);
-  return $cellContent[showColumnLines || contentAlignment === 'right' ? 'appendTo' : 'prependTo']($cell);
-};
-function addCssClassesToCellContent(that, $cell, column, $cellContent) {
-  const $indicatorElements = that._getIndicatorElements($cell, true);
-  const $visibleIndicatorElements = that._getIndicatorElements($cell);
-  const indicatorCount = $indicatorElements === null || $indicatorElements === void 0 ? void 0 : $indicatorElements.length;
-  const columnAlignment = that._getColumnAlignment(column.alignment);
-  const sortIndicatorClassName = `.${that._getIndicatorClassName('sort')}`;
-  const sortIndexIndicatorClassName = `.${that._getIndicatorClassName('sortIndex')}`;
-  const $sortIndicator = $visibleIndicatorElements.filter(sortIndicatorClassName);
-  const $sortIndexIndicator = $visibleIndicatorElements.children().filter(sortIndexIndicatorClassName);
-  $cellContent = $cellContent || $cell.children(`.${that.addWidgetPrefix(CELL_CONTENT_CLASS)}`);
-  $cellContent.toggleClass(TEXT_CONTENT_ALIGNMENT_CLASS_PREFIX + columnAlignment, indicatorCount > 0).toggleClass(TEXT_CONTENT_ALIGNMENT_CLASS_PREFIX + (columnAlignment === 'left' ? 'right' : 'left'), indicatorCount > 0 && column.alignment === 'center').toggleClass(SORT_INDICATOR_CLASS, !!$sortIndicator.length).toggleClass(SORT_INDEX_INDICATOR_CLASS, !!$sortIndexIndicator.length).toggleClass(HEADER_FILTER_INDICATOR_CLASS, !!$visibleIndicatorElements.filter(`.${that._getIndicatorClassName('headerFilter')}`).length);
-}
 class ColumnHeadersView extends (0, _m_column_context_menu_mixin.ColumnContextMenuMixin)(_m_columns_view.ColumnsView) {
+  addCssClassesToCellContent($cell, column, $cellContent) {
+    const $indicatorElements = this._getIndicatorElements($cell, true);
+    const $visibleIndicatorElements = this._getIndicatorElements($cell);
+    const indicatorCount = $indicatorElements === null || $indicatorElements === void 0 ? void 0 : $indicatorElements.length;
+    const columnAlignment = this._getColumnAlignment(column.alignment ?? '');
+    const sortIndicatorClassName = `.${this._getIndicatorClassName('sort')}`;
+    const sortIndexIndicatorClassName = `.${this._getIndicatorClassName('sortIndex')}`;
+    const $sortIndicator = $visibleIndicatorElements.filter(sortIndicatorClassName);
+    const $sortIndexIndicator = $visibleIndicatorElements.children().filter(sortIndexIndicatorClassName);
+    const $content = $cellContent ?? $cell.children(`.${this.addWidgetPrefix(_const2.CLASSES.cellContent)}`);
+    $content.toggleClass(TEXT_CONTENT_ALIGNMENT_CLASS_PREFIX + columnAlignment, indicatorCount > 0).toggleClass(TEXT_CONTENT_ALIGNMENT_CLASS_PREFIX + (columnAlignment === 'left' ? 'right' : 'left'), indicatorCount > 0 && column.alignment === 'center').toggleClass(SORT_INDICATOR_CLASS, !!$sortIndicator.length).toggleClass(SORT_INDEX_INDICATOR_CLASS, !!$sortIndexIndicator.length).toggleClass(HEADER_FILTER_INDICATOR_CLASS, !!$visibleIndicatorElements.filter(`.${this._getIndicatorClassName('headerFilter')}`).length);
+  }
+  createCellContent($cell, column) {
+    const $cellContent = (0, _renderer.default)('<div>').addClass(this.addWidgetPrefix(_const2.CLASSES.cellContent));
+    this.setAria('role', 'presentation', $cellContent);
+    this.addCssClassesToCellContent($cell, column, $cellContent);
+    const showColumnLines = this.option('showColumnLines');
+    // TODO getController
+    const contentAlignment = this.getController('columns').getHeaderContentAlignment(column.alignment);
+    if (showColumnLines || contentAlignment === 'right') {
+      $cellContent.appendTo($cell);
+    } else {
+      $cellContent.prependTo($cell);
+    }
+    return $cellContent;
+  }
   init() {
     super.init();
     this._headerPanelView = this.getView('headerPanel');
@@ -43832,22 +43994,22 @@ class ColumnHeadersView extends (0, _m_column_context_menu_mixin.ColumnContextMe
   _isLegacyKeyboardNavigation() {
     return this.option('useLegacyKeyboardNavigation');
   }
-  _getDefaultTemplate(column) {
-    const that = this;
-    return function ($container, options) {
-      const {
-        caption
-      } = column;
-      const needCellContent = !column.command || caption && column.command !== 'expand';
-      if (column.command === 'empty') {
-        that._renderEmptyMessage($container, options);
-      } else if (needCellContent) {
-        const $content = createCellContent(that, $container, options);
-        $content.text(caption);
-      } else if (column.command) {
-        $container.html('&nbsp;');
-      }
-    };
+  getHeaderDefaultTemplate($container, options) {
+    const {
+      column
+    } = options;
+    const {
+      caption
+    } = column;
+    const needCellContent = !column.command || caption && column.command !== 'expand';
+    if (column.command === 'empty') {
+      this._renderEmptyMessage($container, options);
+    } else if (needCellContent) {
+      const $content = this.createCellContent($container, column);
+      $content.text(caption);
+    } else if (column.command) {
+      $container.html('&nbsp;');
+    }
   }
   _renderEmptyMessage($container, options) {
     const textEmpty = this._getEmptyHeaderText();
@@ -43855,7 +44017,7 @@ class ColumnHeadersView extends (0, _m_column_context_menu_mixin.ColumnContextMe
       $container.html('&nbsp;');
       return;
     }
-    const $cellContent = createCellContent(this, $container, options);
+    const $cellContent = this.createCellContent($container, options.column);
     const needSplit = textEmpty.includes('{0}');
     if (needSplit) {
       const [leftPart, rightPart] = textEmpty.split('{0}');
@@ -43885,7 +44047,7 @@ class ColumnHeadersView extends (0, _m_column_context_menu_mixin.ColumnContextMe
   _getHeaderTemplate(column) {
     return column.headerCellTemplate || {
       allowRenderToDetachedContainer: true,
-      render: this._getDefaultTemplate(column)
+      render: this.getHeaderDefaultTemplate.bind(this)
     };
   }
   _processTemplate(template, options) {
@@ -43898,7 +44060,7 @@ class ColumnHeadersView extends (0, _m_column_context_menu_mixin.ColumnContextMe
     if (options.rowType === 'header' && renderingTemplate && column.headerCellTemplate && !column.command) {
       resultTemplate = {
         render(options) {
-          const $content = createCellContent(that, options.container, options.model);
+          const $content = that.createCellContent(options.container, options.model);
           renderingTemplate.render((0, _extend.extend)({}, options, {
             container: $content
           }));
@@ -44080,7 +44242,7 @@ class ColumnHeadersView extends (0, _m_column_context_menu_mixin.ColumnContextMe
     if ((_$indicatorsContainer = $indicatorsContainer) !== null && _$indicatorsContainer !== void 0 && _$indicatorsContainer.length) {
       $indicatorsContainer.filter(`.${VISIBILITY_HIDDEN_CLASS}`).remove();
       $indicatorsContainer = this._getIndicatorContainer($cell);
-      $indicatorsContainer.clone().addClass(VISIBILITY_HIDDEN_CLASS).css('float', '').insertBefore($cell.children(`.${this.addWidgetPrefix(CELL_CONTENT_CLASS)}`));
+      $indicatorsContainer.clone().addClass(VISIBILITY_HIDDEN_CLASS).css('float', '').insertBefore($cell.children(`.${this.addWidgetPrefix(_const2.CLASSES.cellContent)}`));
     }
   }
   _updateCell($cell, options) {
@@ -44097,7 +44259,7 @@ class ColumnHeadersView extends (0, _m_column_context_menu_mixin.ColumnContextMe
     if (column.alignment === 'center') {
       this._alignCaptionByCenter($cell);
     }
-    addCssClassesToCellContent(this, $cell, column);
+    this.addCssClassesToCellContent($cell, column);
     return $indicatorElement;
   }
   _getIndicatorContainer($cell, returnAll) {
@@ -44302,6 +44464,9 @@ class ColumnHeadersView extends (0, _m_column_context_menu_mixin.ColumnContextMe
   getKeyboardNavigationController() {
     return this._headersKeyboardNavigation;
   }
+  renderDragCellContent($dragContainer, column) {
+    $dragContainer.text(column.caption ?? '');
+  }
 }
 exports.ColumnHeadersView = ColumnHeadersView;
 const columnHeadersModule = exports.columnHeadersModule = {
@@ -44363,8 +44528,9 @@ const ColumnStateMixin = Base => class extends Base {
   // @ts-expect-error
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _getIndicatorClassName(name) {}
-  _getColumnAlignment(alignment, rtlEnabled) {
-    rtlEnabled = rtlEnabled || this.option('rtlEnabled');
+  _getColumnAlignment(alignment) {
+    let rtl = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
+    const rtlEnabled = rtl || this.option('rtlEnabled');
     return alignment && alignment !== 'center' ? alignment : (0, _position.getDefaultAlignment)(rtlEnabled);
   }
   _createIndicatorContainer(options, ignoreIndicatorAlignment) {
@@ -44380,8 +44546,9 @@ const ColumnStateMixin = Base => class extends Base {
     return $cell && $cell.find(`.${COLUMN_INDICATORS_CLASS}`);
   }
   _getIndicatorElements($cell) {
+    let returnAll = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
     const $indicatorContainer = this._getIndicatorContainer($cell);
-    return $indicatorContainer && $indicatorContainer.children();
+    return $indicatorContainer === null || $indicatorContainer === void 0 ? void 0 : $indicatorContainer.children();
   }
   /**
    * @extended header_filter_core
@@ -46081,7 +46248,7 @@ Object.defineProperty(exports, "__esModule", ({
 }));
 exports.applyUserState = exports.addExpandColumn = void 0;
 exports.assignColumns = assignColumns;
-exports.isFirstOrLastColumn = exports.isColumnNameRequired = exports.isColumnFixed = exports.getValueDataType = exports.getSerializationFormat = exports.getRowCount = exports.getParentBandColumns = exports.getFixedPosition = exports.getDataColumns = exports.getCustomizeTextByDataType = exports.getColumnIndexByVisibleIndex = exports.getColumnFullPath = exports.getColumnByIndexes = exports.getChildrenByBandColumn = exports.getAlignmentByDataType = exports.fireOptionChanged = exports.fireColumnsChanged = exports.findColumn = exports.digitsCount = exports.defaultSetCellValue = exports.customizeTextForBooleanDataType = exports.createColumnsFromOptions = exports.createColumnsFromDataSource = exports.createColumn = exports.convertOwnerBandToColumnReference = exports.columnOptionCore = exports.calculateColspan = void 0;
+exports.isFirstOrLastColumn = exports.isColumnNameRequired = exports.isColumnFixed = exports.getValueDataType = exports.getSerializationFormat = exports.getRowCount = exports.getParentBandColumns = exports.getFixedPosition = exports.getDataColumns = exports.getCustomizeTextByDataType = exports.getColumnIndexByVisibleIndex = exports.getColumnHeaderCellSelector = exports.getColumnFullPath = exports.getColumnByIndexes = exports.getChildrenByBandColumn = exports.getAlignmentByDataType = exports.fireOptionChanged = exports.fireColumnsChanged = exports.findColumn = exports.digitsCount = exports.defaultSetCellValue = exports.customizeTextForBooleanDataType = exports.createColumnsFromOptions = exports.createColumnsFromDataSource = exports.createColumn = exports.convertOwnerBandToColumnReference = exports.columnOptionCore = exports.calculateColspan = void 0;
 exports.isSortOrderValid = isSortOrderValid;
 exports.updateSortOrderWhenGrouping = exports.updateSerializers = exports.updateIndexes = exports.updateColumnVisibleIndexes = exports.updateColumnSortIndexes = exports.updateColumnIndexes = exports.updateColumnGroupIndexes = exports.updateColumnChanges = exports.strictParseNumber = exports.sortColumns = exports.setFilterOperationsAsDefaultValues = exports.resetColumnsCache = exports.resetBandColumnsCache = exports.processExpandColumns = exports.processBandColumns = exports.numberToString = exports.moveColumnToGroup = exports.mergeColumns = void 0;
 var _number = _interopRequireDefault(__webpack_require__(52771));
@@ -47015,6 +47182,8 @@ const isColumnNameRequired = function (_ref) {
   return _const3.COMMAND_COLUMNS_WITH_REQUIRED_NAMES.includes(type);
 };
 exports.isColumnNameRequired = isColumnNameRequired;
+const getColumnHeaderCellSelector = visibleIndex => `.dx-header-row td[aria-colindex="${visibleIndex + 1}"]`;
+exports.getColumnHeaderCellSelector = getColumnHeaderCellSelector;
 
 /***/ }),
 
@@ -47346,6 +47515,28 @@ class BlockSeparatorView extends SeparatorView {
 exports.BlockSeparatorView = BlockSeparatorView;
 class DraggingHeaderView extends _m_modules.default.View {
   /// #ENDDEBUG
+  getSourceDraggingPanel() {
+    const {
+      sourceLocation,
+      draggingPanels
+    } = this._dragOptions;
+    return draggingPanels.find(draggingPanel => draggingPanel.getName() === sourceLocation);
+  }
+  updateDragElement() {
+    const {
+      columnElement,
+      sourceColumn
+    } = this._dragOptions;
+    const sourceDraggingPanel = this.getSourceDraggingPanel();
+    const dragElement = this.element();
+    dragElement.empty().css({
+      textAlign: columnElement === null || columnElement === void 0 ? void 0 : columnElement.css('textAlign'),
+      height: columnElement && (0, _size.getHeight)(columnElement),
+      width: columnElement && (0, _size.getWidth)(columnElement),
+      whiteSpace: columnElement === null || columnElement === void 0 ? void 0 : columnElement.css('whiteSpace')
+    }).addClass(this.addWidgetPrefix(HEADERS_DRAG_ACTION_CLASS));
+    sourceDraggingPanel.renderDragCellContent(dragElement, sourceColumn);
+  }
   init() {
     super.init();
     const dataController = this.getController('data');
@@ -47408,33 +47599,27 @@ class DraggingHeaderView extends _m_modules.default.View {
     return this.option('showColumnHeaders') && (allowReordering(this) || commonColumnSettings.allowGrouping || commonColumnSettings.allowHiding);
   }
   dragHeader(options) {
-    const that = this;
     const {
       columnElement
     } = options;
-    that._isDragging = true;
-    that._dragOptions = options;
-    that._dropOptions = {
+    this._isDragging = true;
+    this._dragOptions = options;
+    this._dropOptions = {
       sourceIndex: options.index,
-      sourceColumnIndex: that._getVisibleIndexObject(options.rowIndex, options.columnIndex),
-      sourceColumnElement: options.columnElement,
+      sourceColumnIndex: this._getVisibleIndexObject(options.rowIndex, options.columnIndex),
+      sourceColumnElement: columnElement,
       sourceLocation: options.sourceLocation
     };
     const document = _dom_adapter.default.getDocument();
     // eslint-disable-next-line spellcheck/spell-checker
-    that._onSelectStart = document.onselectstart;
+    this._onSelectStart = document.onselectstart;
     // eslint-disable-next-line spellcheck/spell-checker
     document.onselectstart = function () {
       return false;
     };
-    that._controller.drag(that._dropOptions);
-    that.element().css({
-      textAlign: columnElement === null || columnElement === void 0 ? void 0 : columnElement.css('textAlign'),
-      height: columnElement && (0, _size.getHeight)(columnElement),
-      width: columnElement && (0, _size.getWidth)(columnElement),
-      whiteSpace: columnElement === null || columnElement === void 0 ? void 0 : columnElement.css('whiteSpace')
-    }).addClass(that.addWidgetPrefix(HEADERS_DRAG_ACTION_CLASS)).text(options.sourceColumn.caption);
-    that.element().appendTo(_swatch_container.default.getSwatchContainer(columnElement));
+    this._controller.drag(this._dropOptions);
+    this.updateDragElement();
+    this.element().appendTo(_swatch_container.default.getSwatchContainer(columnElement));
   }
   moveHeader(args) {
     const e = args.event;
@@ -48864,7 +49049,8 @@ class DataController extends (0, _m_data_helper_mixin.DataHelperMixin)(_m_module
           filterApplied = true;
         }
       }
-      if (!that._needApplyFilter && !_m_utils.default.checkChanges(optionNames, ['width', 'visibleWidth', 'filterValue', 'bufferedFilterValue', 'selectedFilterOperation', 'filterValues', 'filterType'])) {
+      const excludedOptionNames = ['ai', 'width', 'visibleWidth', 'filterValue', 'bufferedFilterValue', 'selectedFilterOperation', 'filterValues', 'filterType'];
+      if (!that._needApplyFilter && !_m_utils.default.checkChanges(optionNames, excludedOptionNames)) {
         // TODO remove resubscribing
         that._columnsController.columnsChanged.add(updateItemsHandler);
       }
@@ -70714,6 +70900,9 @@ class ColumnsView extends (0, _m_column_state_mixin.ColumnStateMixin)(_m_modules
   isDisposed() {
     var _this$component;
     return (_this$component = this.component) === null || _this$component === void 0 ? void 0 : _this$component._disposed;
+  }
+  renderDragCellContent($dragContainer, column) {
+    $dragContainer.text(column.caption ?? '');
   }
 }
 exports.ColumnsView = ColumnsView;
@@ -98078,6 +98267,11 @@ _m_core.default.registerModule('aiColumn', {
   },
   views: {
     aiColumnView: _m_ai_column_view.AIColumnView
+  },
+  extenders: {
+    views: {
+      columnHeadersView: _m_ai_column_view.columnHeadersViewExtender
+    }
   }
 });
 
@@ -103542,14 +103736,17 @@ var _themes = __webpack_require__(52071);
 var _m_date_serialization = __webpack_require__(62897);
 var _m_utils_time_zone = _interopRequireDefault(__webpack_require__(18648));
 var _constants = __webpack_require__(46912);
+var _appointment_groups_utils = __webpack_require__(11649);
 var _m_recurrence_form = __webpack_require__(58452);
 var _utils = __webpack_require__(63512);
 function _interopRequireDefault(e) { return e && e.__esModule ? e : { default: e }; }
 function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
 const CLASSES = {
   form: 'dx-scheduler-form',
+  icon: 'dx-icon',
+  hidden: 'dx-hidden',
   groupWithIcon: 'dx-scheduler-form-group-with-icon',
-  icon: 'dx-scheduler-form-icon',
+  formIcon: 'dx-scheduler-form-icon',
   defaultResourceIcon: 'dx-scheduler-default-resources-icon',
   mainGroup: 'dx-scheduler-form-main-group',
   subjectGroup: 'dx-scheduler-form-subject-group',
@@ -103653,6 +103850,7 @@ class AppointmentForm {
   }
   constructor(scheduler) {
     this.scheduler = scheduler;
+    this.resourceManager = scheduler.getResourceManager();
   }
   dispose() {
     var _this$_dxForm;
@@ -103705,9 +103903,16 @@ class AppointmentForm {
           recurrenceRuleExpr,
           allDayExpr
         } = this.scheduler.getDataAccessors().expr;
-        const isAllDayChanged = e.dataField === allDayExpr;
-        const isDateRangeChanged = [startDateExpr, endDateExpr].includes(e.dataField);
-        const isRecurrenceRuleChanged = e.dataField === recurrenceRuleExpr;
+        const {
+          dataField
+        } = e;
+        if (!dataField) {
+          return;
+        }
+        const isAllDayChanged = dataField === allDayExpr;
+        const isDateRangeChanged = [startDateExpr, endDateExpr].includes(dataField);
+        const isRecurrenceRuleChanged = dataField === recurrenceRuleExpr;
+        const isResourceChanged = Object.keys(this.scheduler.getResourceById()).includes(dataField);
         if (isAllDayChanged) {
           this.updateDateTimeEditorsVisibility();
         }
@@ -103716,6 +103921,9 @@ class AppointmentForm {
         }
         if (isRecurrenceRuleChanged) {
           this.updateRepeatEditor();
+        }
+        if (isResourceChanged) {
+          this.updateSubjectIconColor();
         }
       },
       onInitialized: e => {
@@ -103746,7 +103954,7 @@ class AppointmentForm {
       },
       items: [{
         colSpan: 1,
-        cssClass: CLASSES.icon,
+        cssClass: CLASSES.formIcon,
         template: (0, _utils.createFormIconTemplate)('isnotblank')
       }, {
         colSpan: 1,
@@ -103770,7 +103978,7 @@ class AppointmentForm {
       },
       items: [{
         colSpan: 1,
-        cssClass: CLASSES.icon,
+        cssClass: CLASSES.formIcon,
         template: (0, _utils.createFormIconTemplate)('clock')
       }, {
         colSpan: 1,
@@ -103976,7 +104184,7 @@ class AppointmentForm {
       cssClass: `${CLASSES.repeatGroup} ${CLASSES.groupWithIcon}`,
       items: [{
         colSpan: 1,
-        cssClass: CLASSES.icon,
+        cssClass: CLASSES.formIcon,
         template: (0, _utils.createFormIconTemplate)('repeat')
       }, {
         name: EDITOR_NAMES.repeat,
@@ -104018,7 +104226,7 @@ class AppointmentForm {
       cssClass: `${CLASSES.descriptionGroup} ${CLASSES.groupWithIcon}`,
       items: [{
         colSpan: 1,
-        cssClass: CLASSES.icon,
+        cssClass: CLASSES.formIcon,
         template: (0, _utils.createFormIconTemplate)('description')
       }, {
         colSpan: 1,
@@ -104071,7 +104279,7 @@ class AppointmentForm {
         cssClass: `${CLASSES.resourcesGroup} ${CLASSES.groupWithIcon}`,
         items: [{
           colSpan: 1,
-          cssClass: `${CLASSES.icon} ${CLASSES.defaultResourceIcon}`,
+          cssClass: `${CLASSES.formIcon} ${CLASSES.defaultResourceIcon}`,
           template: (0, _utils.createFormIconTemplate)('addcircleoutline')
         }, {
           itemType: 'group',
@@ -104091,7 +104299,7 @@ class AppointmentForm {
         cssClass: CLASSES.groupWithIcon,
         items: [{
           colSpan: 1,
-          cssClass: CLASSES.icon,
+          cssClass: CLASSES.formIcon,
           template: (0, _utils.createFormIconTemplate)(icon)
         }, item]
       };
@@ -104106,11 +104314,14 @@ class AppointmentForm {
       items: resourcesItems
     };
   }
-  setStylingModeToEditors(item, iconsShowMode) {
-    var _item$cssClass;
-    const isIconItem = (_item$cssClass = item.cssClass) === null || _item$cssClass === void 0 ? void 0 : _item$cssClass.includes(CLASSES.icon);
+  setStylingModeToEditors(item, showIcon) {
+    const itemClasses = (item.cssClass ?? '').split(' ');
+    const isIconItem = itemClasses.includes(CLASSES.formIcon);
     if (isIconItem) {
-      item.cssClass += iconsShowMode ? '' : ' dx-hidden';
+      const isHidden = itemClasses.includes(CLASSES.hidden);
+      if (!showIcon && !isHidden) {
+        item.cssClass += ` ${CLASSES.hidden}`;
+      }
       return;
     }
     if (item.itemType === 'simple') {
@@ -104125,7 +104336,7 @@ class AppointmentForm {
       var _groupItem$items;
       const groupItem = item;
       (_groupItem$items = groupItem.items) === null || _groupItem$items === void 0 || _groupItem$items.forEach(child => {
-        this.setStylingModeToEditors(child, iconsShowMode);
+        this.setStylingModeToEditors(child, showIcon);
       });
     }
   }
@@ -104159,6 +104370,16 @@ class AppointmentForm {
       this.dxForm.updateData(recurrenceRuleExpr, recurrenceRule.toString() ?? undefined);
       (_this$dxForm$getEdito2 = this.dxForm.getEditor(EDITOR_NAMES.startDate)) === null || _this$dxForm$getEdito2 === void 0 || _this$dxForm$getEdito2.option('value', recurrenceRule.startDate);
     }
+  }
+  async updateSubjectIconColor() {
+    const groupValues = (0, _appointment_groups_utils.getRawAppointmentGroupValues)(this.formData, this.resourceManager.resources);
+    const groupIndex = (0, _appointment_groups_utils.getAppointmentGroupIndex)((0, _appointment_groups_utils.getSafeGroupValues)(groupValues), this.resourceManager.groupsLeafs)[0];
+    const color = await this.resourceManager.getAppointmentColor({
+      itemData: this.formData,
+      groupIndex
+    });
+    const $icon = this.dxForm.$element().find(`.${CLASSES.subjectGroup} .${CLASSES.formIcon} .${CLASSES.icon}`);
+    $icon.css('color', color ?? '');
   }
   updateDateEditorsValues() {
     const startDateEditor = this.dxForm.getEditor(EDITOR_NAMES.startDate);
@@ -104196,7 +104417,7 @@ class AppointmentForm {
         location: 'after',
         name: 'settings',
         options: {
-          icon: 'preferences',
+          icon: 'optionsoutline',
           stylingMode: 'text',
           onClick: () => {
             this.showRecurrenceGroup();
@@ -105196,7 +105417,7 @@ class AppointmentPopup {
       location: 'before',
       widget: 'dxButton',
       options: {
-        icon: 'back',
+        icon: 'arrowleft',
         stylingMode: 'text',
         onClick: () => {
           this.form.showMainGroup();
@@ -105236,10 +105457,12 @@ class AppointmentPopup {
     this.popup.option('toolbarItems', toolbarItems);
   }
   updateToolbarForMainGroup() {
+    const isCreating = this.state.action === ACTION_TO_APPOINTMENT.CREATE;
+    const formTitleKey = isCreating ? 'dxScheduler-newPopupTitle' : 'dxScheduler-editPopupTitle';
     const toolbarItems = [{
       toolbar: 'top',
       location: 'before',
-      text: _message.default.format('dxScheduler-editPopupTitle'),
+      text: _message.default.format(formTitleKey),
       cssClass: 'dx-toolbar-label'
     }];
     const canSave = !this.form.readOnly;
@@ -105290,7 +105513,7 @@ var _utils = __webpack_require__(63512);
 function _interopRequireDefault(e) { return e && e.__esModule ? e : { default: e }; }
 const CLASSES = {
   groupWithIcon: 'dx-scheduler-form-group-with-icon',
-  icon: 'dx-scheduler-form-icon',
+  formIcon: 'dx-scheduler-form-icon',
   recurrenceGroup: 'dx-scheduler-form-recurrence-group',
   recurrenceHidden: 'dx-scheduler-form-recurrence-hidden',
   frequencyEditor: 'dx-scheduler-form-recurrence-frequency-editor',
@@ -105431,7 +105654,7 @@ class RecurrenceForm {
       cssClass: CLASSES.groupWithIcon,
       items: [{
         colSpan: 1,
-        cssClass: CLASSES.icon,
+        cssClass: CLASSES.formIcon,
         template: (0, _utils.createFormIconTemplate)('clock')
       }, (0, _extend.extend)(true, (0, _utils.getStartDateCommonConfig)(this.scheduler.getFirstDayOfWeek()), {
         name: EDITOR_NAMES.recurrenceStartDate,
@@ -105459,7 +105682,7 @@ class RecurrenceForm {
       },
       items: [{
         colSpan: 1,
-        cssClass: CLASSES.icon,
+        cssClass: CLASSES.formIcon,
         template: (0, _utils.createFormIconTemplate)('repeat')
       }, {
         itemType: 'group',
@@ -105609,7 +105832,7 @@ class RecurrenceForm {
       cssClass: `${CLASSES.groupWithIcon} ${CLASSES.recurrenceEndGroup}`,
       items: [{
         colSpan: 1,
-        cssClass: CLASSES.icon,
+        cssClass: CLASSES.formIcon,
         template: (0, _utils.createFormIconTemplate)('description')
       }, {
         itemType: 'group',
@@ -110722,6 +110945,7 @@ class Scheduler extends _scheduler_options_base_widget.SchedulerOptionsBaseWidge
       // @ts-expect-error
       createComponent: (element, component, options) => this._createComponent(element, component, options),
       getEditingConfig: () => this._editing,
+      getResourceManager: () => this.resourceManager,
       getFirstDayOfWeek: () => this.option('firstDayOfWeek'),
       getStartDayHour: () => this.option('startDayHour'),
       getCalculatedEndDate: startDateWithStartHour => this._workSpace.calculateEndDate(startDateWithStartHour),
@@ -135133,7 +135357,8 @@ class Chat extends _widget.default {
       onMessageEditingStart: undefined,
       onMessageEntered: undefined,
       onTypingEnd: undefined,
-      onTypingStart: undefined
+      onTypingStart: undefined,
+      onAttachmentDownload: undefined
     });
   }
   _init() {
@@ -135204,6 +135429,7 @@ class Chat extends _widget.default {
     // @ts-expect-error
     const isLoading = this._dataController.isLoading();
     const currentUserId = user === null || user === void 0 ? void 0 : user.id;
+    const onAttachmentDownload = this._getAttachmentDownloadHandler();
     const options = {
       items,
       currentUserId,
@@ -135230,11 +135456,22 @@ class Chat extends _widget.default {
       onEscapeKeyPressed: () => {
         this.focus();
       },
-      onAttachmentDownload: e => {
-        this._attachmentDownloadHandler(e);
-      }
+      onAttachmentDownload
     };
     return options;
+  }
+  _getAttachmentDownloadHandler() {
+    const {
+      onAttachmentDownload
+    } = this.option();
+    if (!onAttachmentDownload) {
+      return;
+    }
+    // eslint-disable-next-line consistent-return
+    return e => {
+      var _this$_attachmentDown;
+      (_this$_attachmentDown = this._attachmentDownloadAction) === null || _this$_attachmentDown === void 0 || _this$_attachmentDown.call(this, e);
+    };
   }
   _allowEditAction(message) {
     const {
@@ -135491,7 +135728,8 @@ class Chat extends _widget.default {
     var _this$_messageEntered;
     const {
       text,
-      event
+      event,
+      attachments
     } = e;
     const {
       user
@@ -135501,6 +135739,9 @@ class Chat extends _widget.default {
       author: user,
       text
     };
+    if (attachments) {
+      message.attachments = attachments;
+    }
     // @ts-expect-error
     const dataSource = this.getDataSource();
     if ((0, _type.isDefined)(dataSource)) {
@@ -135540,10 +135781,6 @@ class Chat extends _widget.default {
       user
     });
   }
-  _attachmentDownloadHandler(e) {
-    var _this$_attachmentDown;
-    (_this$_attachmentDown = this._attachmentDownloadAction) === null || _this$_attachmentDown === void 0 || _this$_attachmentDown.call(this, e);
-  }
   _focusTarget() {
     const $input = (0, _renderer.default)(this.element()).find(`.${TEXTEDITOR_INPUT_CLASS}`);
     return $input;
@@ -135551,14 +135788,17 @@ class Chat extends _widget.default {
   _optionChanged(args) {
     const {
       name,
+      fullName,
       value
     } = args;
     switch (name) {
       case 'activeStateEnabled':
       case 'focusStateEnabled':
       case 'hoverStateEnabled':
-      case 'fileUploaderOptions':
         this._messageBox.option(name, value);
+        break;
+      case 'fileUploaderOptions':
+        this._messageBox.option(fullName, value);
         break;
       case 'user':
         {
@@ -135608,6 +135848,9 @@ class Chat extends _widget.default {
         break;
       case 'onAttachmentDownload':
         this._createAttachmentDownloadAction();
+        this._messageList.option({
+          onAttachmentDownload: this._getAttachmentDownloadHandler()
+        });
         break;
       case 'showDayHeaders':
       case 'showAvatar':
@@ -135867,6 +136110,12 @@ class File extends _dom_component.default {
     this.$element().append($size);
   }
   _renderButton() {
+    const {
+      onDownload
+    } = this.option();
+    if (!onDownload) {
+      return;
+    }
     const $button = (0, _renderer.default)('<div>').addClass(CHAT_FILE_DOWNLOAD_BUTTON_CLASS);
     this._downloadButton = this._createComponent($button, _button.default, this._getButtonConfig());
     this.$element().append($button);
@@ -135890,18 +136139,41 @@ class File extends _dom_component.default {
       icon: 'download',
       stylingMode: 'text',
       onClick: e => {
-        var _this$_downloadAction;
-        const event = {
-          event: e.event,
-          attachment: data
-        };
-        (_this$_downloadAction = this._downloadAction) === null || _this$_downloadAction === void 0 || _this$_downloadAction.call(this, event);
+        this._downloadHandler(e);
       }
     };
     return configuration;
   }
+  _downloadHandler(e) {
+    var _this$_downloadAction;
+    const {
+      data
+    } = this.option();
+    const event = {
+      event: e.event,
+      attachment: data
+    };
+    (_this$_downloadAction = this._downloadAction) === null || _this$_downloadAction === void 0 || _this$_downloadAction.call(this, event);
+  }
+  _handleOnDownloadOptionChange() {
+    const {
+      onDownload
+    } = this.option();
+    if (!onDownload) {
+      this._cleanDownloadButton();
+      return;
+    }
+    if (this._downloadButton) {
+      var _this$_downloadButton;
+      (_this$_downloadButton = this._downloadButton) === null || _this$_downloadButton === void 0 || _this$_downloadButton.option({
+        onClick: e => this._downloadHandler(e)
+      });
+    } else {
+      this._renderButton();
+    }
+  }
   _optionChanged(args) {
-    var _this$_downloadButton;
+    var _this$_downloadButton2;
     const {
       name,
       value
@@ -135910,13 +136182,14 @@ class File extends _dom_component.default {
       case 'activeStateEnabled':
       case 'focusStateEnabled':
       case 'hoverStateEnabled':
-        (_this$_downloadButton = this._downloadButton) === null || _this$_downloadButton === void 0 || _this$_downloadButton.option(name, value);
+        (_this$_downloadButton2 = this._downloadButton) === null || _this$_downloadButton2 === void 0 || _this$_downloadButton2.option(name, value);
         break;
       case 'data':
         this._invalidate();
         break;
       case 'onDownload':
         this._createDownloadAction();
+        this._handleOnDownloadOptionChange();
         break;
       default:
         super._optionChanged(args);
@@ -135928,8 +136201,8 @@ class File extends _dom_component.default {
     super._clean();
   }
   _cleanDownloadButton() {
-    var _this$_downloadButton2;
-    (_this$_downloadButton2 = this._downloadButton) === null || _this$_downloadButton2 === void 0 || _this$_downloadButton2.dispose();
+    var _this$_downloadButton3;
+    (_this$_downloadButton3 = this._downloadButton) === null || _this$_downloadButton3 === void 0 || _this$_downloadButton3.dispose();
     this._downloadButton = null;
   }
 }
@@ -135966,15 +136239,6 @@ class FileView extends _dom_component.default {
       hoverStateEnabled: true
     });
   }
-  _init() {
-    super._init();
-    this._createDownloadAction();
-  }
-  _createDownloadAction() {
-    this._downloadAction = this._createActionByOption('onDownload', {
-      excludeValidators: ['disabled']
-    });
-  }
   _initMarkup() {
     this.$element().addClass(CHAT_FILE_VIEW_CLASS);
     super._initMarkup();
@@ -136000,17 +136264,15 @@ class FileView extends _dom_component.default {
     const {
       activeStateEnabled,
       focusStateEnabled,
-      hoverStateEnabled
+      hoverStateEnabled,
+      onDownload
     } = this.option();
     const configuration = {
       data,
       activeStateEnabled,
       focusStateEnabled,
       hoverStateEnabled,
-      onDownload: event => {
-        var _this$_downloadAction;
-        (_this$_downloadAction = this._downloadAction) === null || _this$_downloadAction === void 0 || _this$_downloadAction.call(this, event);
-      }
+      onDownload
     };
     return configuration;
   }
@@ -136046,14 +136308,12 @@ class FileView extends _dom_component.default {
       case 'activeStateEnabled':
       case 'focusStateEnabled':
       case 'hoverStateEnabled':
+      case 'onDownload':
         this._renderItems();
         break;
       case 'files':
         this._renderItems();
         this._toggleAria();
-        break;
-      case 'onDownload':
-        this._createDownloadAction();
         break;
       default:
         super._optionChanged(args);
@@ -136072,7 +136332,7 @@ var _default = exports["default"] = FileView;
 Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
-exports["default"] = exports.TEXT_AREA_TOOLBAR = void 0;
+exports["default"] = exports.CHAT_TEXT_AREA_TOOLBAR = exports.CHAT_TEXT_AREA_ATTACH_BUTTON = exports.CHAT_TEXTAREA_CLASS = void 0;
 var _index = __webpack_require__(98834);
 var _message = _interopRequireDefault(__webpack_require__(4671));
 var _devices = _interopRequireDefault(__webpack_require__(65951));
@@ -136080,19 +136340,60 @@ var _renderer = _interopRequireDefault(__webpack_require__(64553));
 var _size = __webpack_require__(57653);
 var _themes = __webpack_require__(52071);
 var _toolbar = _interopRequireDefault(__webpack_require__(2850));
+var _widget = _interopRequireDefault(__webpack_require__(89275));
+var _file_uploader = _interopRequireDefault(__webpack_require__(95348));
+var _informer = _interopRequireDefault(__webpack_require__(83706));
 var _m_text_area = _interopRequireDefault(__webpack_require__(36234));
 function _interopRequireDefault(e) { return e && e.__esModule ? e : { default: e }; }
 function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
-const TEXT_AREA_TOOLBAR = exports.TEXT_AREA_TOOLBAR = 'dx-textarea-toolbar';
+const CHAT_TEXT_AREA_ATTACHMENTS = 'dx-chat-textarea-attachments';
+const CHAT_TEXT_AREA_ATTACH_BUTTON = exports.CHAT_TEXT_AREA_ATTACH_BUTTON = 'dx-chat-textarea-attach-button';
+const CHAT_TEXTAREA_CLASS = exports.CHAT_TEXTAREA_CLASS = 'dx-chat-textarea';
+const CHAT_TEXT_AREA_TOOLBAR = exports.CHAT_TEXT_AREA_TOOLBAR = 'dx-chat-textarea-toolbar';
+const MAX_ATTACHMENTS_COUNT = 10;
+const INFORMER_DELAY = 10000;
+const ERRORS = {
+  // @ts-expect-error format params should be extended
+  fileLimit: _message.default.format('dxChat-fileLimitReachedWarning', MAX_ATTACHMENTS_COUNT)
+};
 const isMobile = () => _devices.default.current().deviceType !== 'desktop';
 class ChatTextArea extends _m_text_area.default {
+  constructor() {
+    super(...arguments);
+    this._fileUploaderOnCancelButtonClick = e => {
+      const {
+        file
+      } = e;
+      if (file) {
+        var _this$_filesToSend;
+        (_this$_filesToSend = this._filesToSend) === null || _this$_filesToSend === void 0 || _this$_filesToSend.delete(file);
+      }
+      this._toggleButtonDisableState();
+    };
+  }
+  getAttachments() {
+    var _this$_filesToSend2;
+    if (!((_this$_filesToSend2 = this._filesToSend) !== null && _this$_filesToSend2 !== void 0 && _this$_filesToSend2.size)) {
+      return undefined;
+    }
+    return Array.from(this._filesToSend.values()).map(_ref => {
+      let {
+        name,
+        size
+      } = _ref;
+      return {
+        name,
+        size
+      };
+    });
+  }
   _getDefaultOptions() {
     return _extends({}, super._getDefaultOptions(), {
       stylingMode: 'outlined',
       placeholder: _message.default.format('dxChat-textareaPlaceholder'),
       autoResizeEnabled: true,
       valueChangeEvent: 'input',
-      maxHeight: '8em',
+      maxHeight: '16em',
       fileUploaderOptions: undefined
     });
   }
@@ -136121,8 +136422,6 @@ class ChatTextArea extends _m_text_area.default {
     }
     if (this._shouldSendMessageOnEnter(e)) {
       this._processSendButtonActivation({
-        component: this,
-        element: this.element(),
         event: e
       });
     }
@@ -136137,15 +136436,43 @@ class ChatTextArea extends _m_text_area.default {
     });
   }
   _initMarkup() {
+    this.$element().addClass(CHAT_TEXTAREA_CLASS);
     super._initMarkup();
     this._renderToolbar();
+    this._initFileUploader();
+  }
+  _showInformer(text) {
+    if (this._informer) {
+      this._informer.option({
+        text
+      });
+    } else {
+      this._renderInformer(text);
+    }
+    this._updateInformerTimeout();
+  }
+  _renderInformer(text) {
+    const $informer = (0, _renderer.default)('<div>').prependTo(this.$element());
+    this._informer = this._createComponent($informer, _informer.default, {
+      text,
+      contentAlignment: 'start',
+      icon: 'errorcircle'
+    });
+  }
+  _updateInformerTimeout() {
+    clearTimeout(this._informerTimeoutId);
+    // eslint-disable-next-line no-restricted-globals
+    this._informerTimeoutId = setTimeout(() => {
+      this._cleanInformer();
+      this._updateInputHeight();
+    }, INFORMER_DELAY);
   }
   _renderToolbar() {
     const toolbarItems = this._getToolbarItems();
     const toolbarOptions = {
       items: toolbarItems
     };
-    this._$toolbar = (0, _renderer.default)('<div>').addClass(TEXT_AREA_TOOLBAR).appendTo(this.$element());
+    this._$toolbar = (0, _renderer.default)('<div>').addClass(CHAT_TEXT_AREA_TOOLBAR).appendTo(this.$element());
     this._toolbar = this._createComponent(this._$toolbar, _toolbar.default, toolbarOptions);
   }
   _getToolbarItems() {
@@ -136154,11 +136481,11 @@ class ChatTextArea extends _m_text_area.default {
     } = this.option();
     const items = [this._getSendButtonConfig()];
     if (fileUploaderOptions) {
-      items.push(this._getFileUploaderButtonConfig());
+      items.push(this._getAttachButtonConfig());
     }
     return items;
   }
-  _getFileUploaderButtonConfig() {
+  _getAttachButtonConfig() {
     const {
       activeStateEnabled,
       focusStateEnabled,
@@ -136171,7 +136498,14 @@ class ChatTextArea extends _m_text_area.default {
         activeStateEnabled,
         focusStateEnabled,
         hoverStateEnabled,
-        icon: 'attach'
+        elementAttr: {
+          class: CHAT_TEXT_AREA_ATTACH_BUTTON
+        },
+        icon: 'attach',
+        onClick: () => {
+          this._cleanInformer();
+          this._updateInputHeight();
+        }
       }
     };
     return configuration;
@@ -136206,30 +136540,127 @@ class ChatTextArea extends _m_text_area.default {
     };
     return configuration;
   }
+  _initFileUploader() {
+    const {
+      fileUploaderOptions
+    } = this.option();
+    if (!fileUploaderOptions) {
+      return;
+    }
+    this._renderFileUploader();
+    this._filesToSend = new Map();
+  }
+  _renderFileUploader() {
+    this._$fileUploader = (0, _renderer.default)('<div>').addClass(CHAT_TEXT_AREA_ATTACHMENTS).insertBefore(this._$textEditorContainer);
+    this._fileUploader = this._createComponent(this._$fileUploader, _file_uploader.default, this._getFileUploaderOptions());
+  }
+  _shouldHideFileUploader() {
+    let value = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : [];
+    return value.length !== 0;
+  }
+  _getFileUploaderOptions() {
+    const {
+      fileUploaderOptions = {}
+    } = this.option();
+    const multiple = fileUploaderOptions.multiple ?? true;
+    const visible = this._shouldHideFileUploader(fileUploaderOptions.value);
+    return _extends({}, fileUploaderOptions, {
+      multiple,
+      visible,
+      uploadMode: 'instantly',
+      dialogTrigger: this.$element().find(`.${CHAT_TEXT_AREA_ATTACH_BUTTON}`).get(0),
+      _hideCancelButtonOnUpload: false,
+      _showFileIcon: true,
+      _cancelButtonPosition: 'end',
+      _maxFileCount: MAX_ATTACHMENTS_COUNT,
+      onValueChanged: e => this._fileUploaderOnValueChanged(e),
+      onUploadStarted: e => this._fileUploaderOnUploadStarted(e),
+      onUploaded: e => this._fileUploaderOnUploaded(e),
+      onCancelButtonClick: e => this._fileUploaderOnCancelButtonClick(e),
+      onFileLimitReached: () => this._fileUploaderFileLimitReached()
+    });
+  }
+  _fileUploaderOnValueChanged(e) {
+    var _fileUploaderOptions$;
+    const {
+      value,
+      component
+    } = e;
+    const {
+      fileUploaderOptions = {}
+    } = this.option();
+    component.option('visible', this._shouldHideFileUploader(value));
+    this._updateInputHeight();
+    (_fileUploaderOptions$ = fileUploaderOptions.onValueChanged) === null || _fileUploaderOptions$ === void 0 || _fileUploaderOptions$.call(fileUploaderOptions, e);
+  }
+  _fileUploaderOnUploadStarted(e) {
+    var _this$_filesToSend3, _fileUploaderOptions$2;
+    const {
+      file
+    } = e;
+    const {
+      fileUploaderOptions = {}
+    } = this.option();
+    (_this$_filesToSend3 = this._filesToSend) === null || _this$_filesToSend3 === void 0 || _this$_filesToSend3.set(file, {
+      readyToSend: false,
+      name: file.name,
+      size: file.size
+    });
+    this._toggleButtonDisableState();
+    (_fileUploaderOptions$2 = fileUploaderOptions.onUploadStarted) === null || _fileUploaderOptions$2 === void 0 || _fileUploaderOptions$2.call(fileUploaderOptions, e);
+  }
+  _fileUploaderOnUploaded(e) {
+    var _this$_filesToSend4, _fileUploaderOptions$3;
+    const {
+      file
+    } = e;
+    const {
+      fileUploaderOptions = {}
+    } = this.option();
+    const fileInfo = (_this$_filesToSend4 = this._filesToSend) === null || _this$_filesToSend4 === void 0 ? void 0 : _this$_filesToSend4.get(file);
+    if (this._filesToSend && fileInfo) {
+      this._filesToSend.set(file, _extends({}, fileInfo, {
+        readyToSend: true
+      }));
+    }
+    this._toggleButtonDisableState();
+    (_fileUploaderOptions$3 = fileUploaderOptions.onUploaded) === null || _fileUploaderOptions$3 === void 0 || _fileUploaderOptions$3.call(fileUploaderOptions, e);
+  }
+  _fileUploaderFileLimitReached() {
+    this._showInformer(ERRORS.fileLimit);
+    this._updateInputHeight();
+  }
   _toggleButtonDisableState(state) {
     var _this$_sendButton;
-    (_this$_sendButton = this._sendButton) === null || _this$_sendButton === void 0 || _this$_sendButton.option('disabled', state);
+    const shouldDisable = state ?? !this._isMessageCanBeSent();
+    (_this$_sendButton = this._sendButton) === null || _this$_sendButton === void 0 || _this$_sendButton.option('disabled', shouldDisable);
   }
   _renderButtonContainers() {}
   _getHeightDifference($input) {
-    const superResult = super._getHeightDifference($input);
+    const baseDifference = super._getHeightDifference($input);
+    const gap = parseFloat(this.$element().css('gap') ?? '0');
+    const informerHeight = this._informer ? (0, _size.getOuterHeight)(this._informer.$element()) : 0;
+    const fileUploaderHeight = (0, _size.getOuterHeight)(this._$fileUploader);
     const toolbarHeight = (0, _size.getOuterHeight)(this._$toolbar);
-    const sum = superResult + toolbarHeight;
-    return sum;
+    const visibleSections = [toolbarHeight, informerHeight, fileUploaderHeight].filter(Boolean).length;
+    const totalExtraHeight = toolbarHeight + informerHeight + fileUploaderHeight + visibleSections * gap;
+    const difference = baseDifference + totalExtraHeight;
+    return difference;
   }
   _keyPressHandler(e) {
     super._keyPressHandler(e);
-    const shouldButtonBeDisabled = !this._isValuableTextEntered();
-    this._toggleButtonDisableState(shouldButtonBeDisabled);
+    this._toggleButtonDisableState();
   }
   _processSendButtonActivation(e) {
-    var _this$_sendAction;
+    var _this$_sendAction, _this$_fileUploader, _this$_filesToSend5;
     (_this$_sendAction = this._sendAction) === null || _this$_sendAction === void 0 || _this$_sendAction.call(this, e);
     this.reset();
+    (_this$_fileUploader = this._fileUploader) === null || _this$_fileUploader === void 0 || _this$_fileUploader.reset();
+    (_this$_filesToSend5 = this._filesToSend) === null || _this$_filesToSend5 === void 0 || _this$_filesToSend5.clear();
     this._toggleButtonDisableState(true);
   }
   _shouldSendMessageOnEnter(e) {
-    return !(e !== null && e !== void 0 && e.shiftKey) && this._isValuableTextEntered() && !isMobile();
+    return !(e !== null && e !== void 0 && e.shiftKey) && this._isMessageCanBeSent() && !isMobile();
   }
   _optionChanged(args) {
     var _this$_sendButton2;
@@ -136245,17 +136676,35 @@ class ChatTextArea extends _m_text_area.default {
         break;
       case 'text':
         {
-          const shouldButtonBeDisabled = !this._isValuableTextEntered();
-          this._toggleButtonDisableState(shouldButtonBeDisabled);
+          this._toggleButtonDisableState();
           break;
         }
       case 'onSend':
         this._createSendAction();
         break;
       case 'fileUploaderOptions':
+        this._handleFileUploaderOptionsChange(args);
+        break;
       default:
         super._optionChanged(args);
     }
+  }
+  _handleFileUploaderOptionsChange(args) {
+    var _this$_fileUploader2;
+    const {
+      fullName,
+      value,
+      previousValue
+    } = args;
+    if (fullName === 'fileUploaderOptions' && (!value || !previousValue)) {
+      this._cleanToolbar();
+      this._renderToolbar();
+      this._cleanFileUploader();
+      this._initFileUploader();
+      return;
+    }
+    const options = _widget.default.getOptionsFromContainer(args);
+    (_this$_fileUploader2 = this._fileUploader) === null || _this$_fileUploader2 === void 0 || _this$_fileUploader2.option(options);
   }
   _isValuableTextEntered() {
     const {
@@ -136263,12 +136712,54 @@ class ChatTextArea extends _m_text_area.default {
     } = this.option();
     return Boolean(text === null || text === void 0 ? void 0 : text.trim());
   }
-  _dispose() {
+  _getFilesArray() {
+    return this._filesToSend ? Array.from(this._filesToSend.values()) : [];
+  }
+  _areFilesReadyToSend() {
+    var _this$_filesToSend6;
+    if (!((_this$_filesToSend6 = this._filesToSend) !== null && _this$_filesToSend6 !== void 0 && _this$_filesToSend6.size)) {
+      return false;
+    }
+    return this._getFilesArray().every(file => file.readyToSend);
+  }
+  _isMessageCanBeSent() {
+    const hasText = this._isValuableTextEntered();
+    const hasReadyFiles = this._areFilesReadyToSend();
+    const hasUnreadyFiles = this._filesToSend && this._getFilesArray().some(file => !file.readyToSend);
+    return !hasUnreadyFiles && (hasText || hasReadyFiles);
+  }
+  _cleanFileUploader() {
+    var _this$_fileUploader3, _this$_$fileUploader;
+    (_this$_fileUploader3 = this._fileUploader) === null || _this$_fileUploader3 === void 0 || _this$_fileUploader3.dispose();
+    (_this$_$fileUploader = this._$fileUploader) === null || _this$_$fileUploader === void 0 || _this$_$fileUploader.remove();
+    this._fileUploader = null;
+    this._$fileUploader = null;
+  }
+  _cleanInformer() {
+    this._clearInformerTimeout();
+    this._removeInformer();
+  }
+  _removeInformer() {
+    var _this$_informer, _this$_informer2;
+    (_this$_informer = this._informer) === null || _this$_informer === void 0 || _this$_informer.dispose();
+    (_this$_informer2 = this._informer) === null || _this$_informer2 === void 0 || _this$_informer2.$element().remove();
+    this._informer = null;
+  }
+  _clearInformerTimeout() {
+    clearTimeout(this._informerTimeoutId);
+    this._informerTimeoutId = undefined;
+  }
+  _cleanToolbar() {
     var _this$_toolbar, _this$_$toolbar;
     (_this$_toolbar = this._toolbar) === null || _this$_toolbar === void 0 || _this$_toolbar.dispose();
     (_this$_$toolbar = this._$toolbar) === null || _this$_$toolbar === void 0 || _this$_$toolbar.remove();
     this._toolbar = null;
     this._$toolbar = null;
+  }
+  _dispose() {
+    this._cleanFileUploader();
+    this._cleanToolbar();
+    this._cleanInformer();
     super._dispose();
   }
 }
@@ -136421,7 +136912,7 @@ var _default = exports["default"] = EditingPreview;
 Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
-exports["default"] = exports.TYPING_END_DELAY = exports.CHAT_MESSAGEBOX_TEXTAREA_CONTAINER_CLASS = exports.CHAT_MESSAGEBOX_TEXTAREA_CLASS = exports.CHAT_MESSAGEBOX_CLASS = void 0;
+exports["default"] = exports.TYPING_END_DELAY = exports.CHAT_MESSAGEBOX_TEXTAREA_CONTAINER_CLASS = exports.CHAT_MESSAGEBOX_CLASS = void 0;
 var _renderer = _interopRequireDefault(__webpack_require__(64553));
 var _dom_component = _interopRequireDefault(__webpack_require__(22331));
 var _chat_text_area = _interopRequireDefault(__webpack_require__(11390));
@@ -136430,7 +136921,6 @@ function _interopRequireDefault(e) { return e && e.__esModule ? e : { default: e
 function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
 const CHAT_MESSAGEBOX_CLASS = exports.CHAT_MESSAGEBOX_CLASS = 'dx-chat-messagebox';
 const CHAT_MESSAGEBOX_TEXTAREA_CONTAINER_CLASS = exports.CHAT_MESSAGEBOX_TEXTAREA_CONTAINER_CLASS = 'dx-chat-messagebox-textarea-container';
-const CHAT_MESSAGEBOX_TEXTAREA_CLASS = exports.CHAT_MESSAGEBOX_TEXTAREA_CLASS = 'dx-chat-messagebox-textarea';
 const TYPING_END_DELAY = exports.TYPING_END_DELAY = 2000;
 const ESCAPE_KEY = 'escape';
 class MessageBox extends _dom_component.default {
@@ -136491,7 +136981,7 @@ class MessageBox extends _dom_component.default {
     });
   }
   _renderTextArea($parent) {
-    const $textArea = (0, _renderer.default)('<div>').addClass(CHAT_MESSAGEBOX_TEXTAREA_CLASS);
+    const $textArea = (0, _renderer.default)('<div>');
     const textAreaOptions = this._getTextAreaOptions();
     $parent.append($textArea);
     this._textArea = this._createComponent($textArea, _chat_text_area.default, textAreaOptions);
@@ -136580,15 +137070,21 @@ class MessageBox extends _dom_component.default {
       });
       return;
     }
-    (_this$_messageEntered = this._messageEnteredAction) === null || _this$_messageEntered === void 0 || _this$_messageEntered.call(this, {
+    const messageEnteredArgs = {
       text,
       event: e.event
-    });
+    };
+    const attachments = this._textArea.getAttachments();
+    if (attachments) {
+      messageEnteredArgs.attachments = attachments;
+    }
+    (_this$_messageEntered = this._messageEnteredAction) === null || _this$_messageEntered === void 0 || _this$_messageEntered.call(this, messageEnteredArgs);
   }
   _optionChanged(args) {
     var _this$_editingPreview;
     const {
       name,
+      fullName,
       value
     } = args;
     switch (name) {
@@ -136599,7 +137095,7 @@ class MessageBox extends _dom_component.default {
         (_this$_editingPreview = this._editingPreview) === null || _this$_editingPreview === void 0 || _this$_editingPreview.option(name, value);
         break;
       case 'fileUploaderOptions':
-        this._textArea.option(name, value);
+        this._textArea.option(fullName, value);
         break;
       case 'onMessageEntered':
         this._createMessageEnteredAction();
@@ -136652,7 +137148,7 @@ var _default = exports["default"] = MessageBox;
 Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
-exports["default"] = exports.MESSAGE_DATA_KEY = exports.CHAT_MESSAGEBUBBLE_IMAGE_CLASS = exports.CHAT_MESSAGEBUBBLE_ICON_PROHIBITION_CLASS = exports.CHAT_MESSAGEBUBBLE_HAS_IMAGE_CLASS = exports.CHAT_MESSAGEBUBBLE_DELETED_CLASS = exports.CHAT_MESSAGEBUBBLE_CONTENT_CLASS = exports.CHAT_MESSAGEBUBBLE_CLASS = exports.CHAT_MESSAGEBUBBLE_ATTACHMENTS_CLASS = void 0;
+exports["default"] = exports.MESSAGE_DATA_KEY = exports.CHAT_MESSAGEBUBBLE_IMAGE_CLASS = exports.CHAT_MESSAGEBUBBLE_ICON_PROHIBITION_CLASS = exports.CHAT_MESSAGEBUBBLE_HAS_IMAGE_CLASS = exports.CHAT_MESSAGEBUBBLE_DELETED_CLASS = exports.CHAT_MESSAGEBUBBLE_CONTENT_CLASS = exports.CHAT_MESSAGEBUBBLE_CLASS = void 0;
 var _message = _interopRequireDefault(__webpack_require__(4671));
 var _element = __webpack_require__(61404);
 var _renderer = _interopRequireDefault(__webpack_require__(64553));
@@ -136664,7 +137160,6 @@ function _extends() { return _extends = Object.assign ? Object.assign.bind() : f
 const CHAT_MESSAGEBUBBLE_CLASS = exports.CHAT_MESSAGEBUBBLE_CLASS = 'dx-chat-messagebubble';
 const CHAT_MESSAGEBUBBLE_DELETED_CLASS = exports.CHAT_MESSAGEBUBBLE_DELETED_CLASS = 'dx-chat-messagebubble-deleted';
 const CHAT_MESSAGEBUBBLE_CONTENT_CLASS = exports.CHAT_MESSAGEBUBBLE_CONTENT_CLASS = 'dx-chat-messagebubble-content';
-const CHAT_MESSAGEBUBBLE_ATTACHMENTS_CLASS = exports.CHAT_MESSAGEBUBBLE_ATTACHMENTS_CLASS = 'dx-chat-messagebubble-attachments';
 const CHAT_MESSAGEBUBBLE_ICON_PROHIBITION_CLASS = exports.CHAT_MESSAGEBUBBLE_ICON_PROHIBITION_CLASS = `${_m_icon.ICON_CLASS}-cursorprohibition`;
 const CHAT_MESSAGEBUBBLE_HAS_IMAGE_CLASS = exports.CHAT_MESSAGEBUBBLE_HAS_IMAGE_CLASS = 'dx-has-image';
 const CHAT_MESSAGEBUBBLE_IMAGE_CLASS = exports.CHAT_MESSAGEBUBBLE_IMAGE_CLASS = 'dx-chat-messagebubble-image';
@@ -136683,15 +137178,24 @@ class MessageBubble extends _widget.default {
     $element.addClass(CHAT_MESSAGEBUBBLE_CLASS);
     super._initMarkup();
     this._renderContentContainer();
-    this._renderAttachmentsContainer();
+    this._renderAttachmentsElement();
     this._updateContent();
     this._renderAttachments();
   }
   _renderContentContainer() {
     this._$content = (0, _renderer.default)('<div>').addClass(CHAT_MESSAGEBUBBLE_CONTENT_CLASS).appendTo(this.$element());
   }
-  _renderAttachmentsContainer() {
-    this._$attachmentsContainer = (0, _renderer.default)('<div>').addClass(CHAT_MESSAGEBUBBLE_ATTACHMENTS_CLASS).appendTo(this.$element());
+  _renderAttachmentsElement() {
+    var _this$_$attachments;
+    const {
+      attachments,
+      isDeleted
+    } = this.option();
+    (_this$_$attachments = this._$attachments) === null || _this$_$attachments === void 0 || _this$_$attachments.remove();
+    this._$attachments = undefined;
+    if (attachments !== null && attachments !== void 0 && attachments.length && !isDeleted) {
+      this._$attachments = (0, _renderer.default)('<div>').appendTo(this.$element());
+    }
   }
   _updateContent() {
     const {
@@ -136702,8 +137206,7 @@ class MessageBubble extends _widget.default {
       alt,
       isDeleted = false
     } = this.option();
-    this.$element().removeClass(CHAT_MESSAGEBUBBLE_DELETED_CLASS);
-    this.$element().removeClass(CHAT_MESSAGEBUBBLE_HAS_IMAGE_CLASS);
+    this.$element().removeClass(CHAT_MESSAGEBUBBLE_DELETED_CLASS).removeClass(CHAT_MESSAGEBUBBLE_HAS_IMAGE_CLASS);
     this._$content.empty();
     if (template) {
       template({
@@ -136733,24 +137236,24 @@ class MessageBubble extends _widget.default {
   }
   _renderAttachments() {
     const {
-      isDeleted,
       attachments,
       activeStateEnabled,
       focusStateEnabled,
       hoverStateEnabled,
       onAttachmentDownload
     } = this.option();
-    this._$attachmentsContainer.empty();
-    if (attachments !== null && attachments !== void 0 && attachments.length && !isDeleted) {
-      const $fileView = (0, _renderer.default)('<div>');
-      this._createComponent($fileView, _file_view.default, {
-        files: attachments,
-        onDownload: onAttachmentDownload,
+    if (!this._$attachments) {
+      return;
+    }
+    this._$attachments.empty();
+    if (attachments !== null && attachments !== void 0 && attachments.length) {
+      this._createComponent(this._$attachments, _file_view.default, {
         activeStateEnabled,
         focusStateEnabled,
-        hoverStateEnabled
+        hoverStateEnabled,
+        files: attachments,
+        onDownload: onAttachmentDownload
       });
-      this._$attachmentsContainer.append($fileView);
     }
   }
   _updateMessageData(property, value) {
@@ -136770,6 +137273,12 @@ class MessageBubble extends _widget.default {
       case 'isDeleted':
         this._updateMessageData(name, value);
         this._updateContent();
+        this._renderAttachmentsElement();
+        this._renderAttachments();
+        break;
+      case 'type':
+        this._updateContent();
+        this._renderAttachmentsElement();
         this._renderAttachments();
         break;
       case 'template':
@@ -136780,6 +137289,7 @@ class MessageBubble extends _widget.default {
         break;
       case 'onAttachmentDownload':
       case 'attachments':
+        this._renderAttachmentsElement();
         this._renderAttachments();
         break;
       default:
@@ -136883,13 +137393,18 @@ class MessageGroup extends _widget.default {
       messageTemplate,
       onAttachmentDownload
     } = this.option();
+    const {
+      isDeleted,
+      type,
+      attachments
+    } = message;
     const options = {
-      isDeleted: message.isDeleted,
-      type: message.type,
-      attachments: message.attachments,
+      isDeleted,
+      type,
+      attachments,
       onAttachmentDownload
     };
-    if (message.type === 'image') {
+    if (type === 'image') {
       options.alt = message.alt;
       options.src = message.src;
     } else {
@@ -137023,6 +137538,7 @@ class MessageGroup extends _widget.default {
       case 'showMessageTimestamp':
       case 'messageTemplate':
       case 'messageTimestampFormat':
+      case 'onAttachmentDownload':
         this._invalidate();
         break;
       default:
@@ -137631,6 +138147,7 @@ class MessageList extends _widget.default {
   }
   _clean() {
     this._lastMessageDate = null;
+    _resize_observer.default.unobserve(this.$element().get(0));
     super._clean();
   }
   _modifyByChanges(changes) {
@@ -137671,6 +138188,7 @@ class MessageList extends _widget.default {
       case 'emptyViewTemplate':
       case 'dayHeaderFormat':
       case 'messageTimestampFormat':
+      case 'onAttachmentDownload':
         this._invalidate();
         break;
       case 'items':
@@ -154329,7 +154847,7 @@ exports.DefaultWholeFileUploadStrategy = DefaultWholeFileUploadStrategy;
 Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
-exports["default"] = void 0;
+exports["default"] = exports.FILEUPLOADER_CLASS = exports.FILEUPLOADER_CANCEL_BUTTON_CLASS = void 0;
 var _events_engine = _interopRequireDefault(__webpack_require__(92774));
 var _index = __webpack_require__(98834);
 var _message = _interopRequireDefault(__webpack_require__(4671));
@@ -154356,7 +154874,7 @@ var _file_uploader = __webpack_require__(12587);
 function _interopRequireDefault(e) { return e && e.__esModule ? e : { default: e }; }
 function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
 const window = (0, _window.getWindow)();
-const FILEUPLOADER_CLASS = 'dx-fileuploader';
+const FILEUPLOADER_CLASS = exports.FILEUPLOADER_CLASS = 'dx-fileuploader';
 const FILEUPLOADER_EMPTY_CLASS = 'dx-fileuploader-empty';
 const FILEUPLOADER_SHOW_FILE_LIST_CLASS = 'dx-fileuploader-show-file-list';
 const FILEUPLOADER_DRAGOVER_CLASS = 'dx-fileuploader-dragover';
@@ -154377,7 +154895,7 @@ const FILEUPLOADER_FILE_SIZE_CLASS = 'dx-fileuploader-file-size';
 const FILEUPLOADER_FILE_ICON_CLASS = 'dx-fileuploader-file-icon';
 const FILEUPLOADER_BUTTON_CLASS = 'dx-fileuploader-button';
 const FILEUPLOADER_BUTTON_CONTAINER_CLASS = 'dx-fileuploader-button-container';
-const FILEUPLOADER_CANCEL_BUTTON_CLASS = 'dx-fileuploader-cancel-button';
+const FILEUPLOADER_CANCEL_BUTTON_CLASS = exports.FILEUPLOADER_CANCEL_BUTTON_CLASS = 'dx-fileuploader-cancel-button';
 const FILEUPLOADER_UPLOAD_BUTTON_CLASS = 'dx-fileuploader-upload-button';
 const FILEUPLOADER_INVALID_CLASS = 'dx-fileuploader-invalid';
 const FILEUPLOADER_AFTER_LOAD_DELAY = 400;
@@ -154445,6 +154963,7 @@ class FileUploader extends _editor.default {
       onDropZoneEnter: null,
       onDropZoneLeave: null,
       onCancelButtonClick: null,
+      onFileLimitReached: undefined,
       allowedFileExtensions: [],
       maxFileSize: 0,
       minFileSize: 0,
@@ -154469,7 +154988,8 @@ class FileUploader extends _editor.default {
       _buttonStylingMode: 'contained',
       _hideCancelButtonOnUpload: true,
       _showFileIcon: false,
-      _cancelButtonPosition: 'start'
+      _cancelButtonPosition: 'start',
+      _maxFileCount: undefined
     });
   }
   _defaultOptionsRules() {
@@ -154525,6 +155045,7 @@ class FileUploader extends _editor.default {
     this._initFileInput();
     this._initLabel();
     this._setUploadStrategy();
+    this._createFileLimitReachedAction();
     this._createFiles();
     this._createBeforeSendAction();
     this._createUploadStartedAction();
@@ -154562,7 +155083,9 @@ class FileUploader extends _editor.default {
     } = this.option();
     if (!this._$fileInput) {
       this._$fileInput = renderFileUploaderInput();
-      _events_engine.default.on(this._$fileInput, 'change', this._inputChangeHandler.bind(this));
+      _events_engine.default.on(this._$fileInput, 'change', () => {
+        this._inputChangeHandler();
+      });
       _events_engine.default.on(this._$fileInput, 'click', e => {
         e.stopPropagation();
         this._resetInputValue();
@@ -154598,6 +155121,11 @@ class FileUploader extends _editor.default {
     if (files && !files.length && uploadMode !== 'useForm') {
       return;
     }
+    if (this._isFileLimitReached(files)) {
+      var _this$_fileLimitReach;
+      (_this$_fileLimitReach = this._fileLimitReachedAction) === null || _this$_fileLimitReach === void 0 || _this$_fileLimitReach.call(this);
+      return;
+    }
     // @ts-expect-error dxElementWrapper should be extdened
     const value = files ? this._getFiles(files) : [{
       name: fileName
@@ -154606,6 +155134,20 @@ class FileUploader extends _editor.default {
     if (uploadMode === 'instantly') {
       this._uploadFiles();
     }
+  }
+  _isFileLimitReached() {
+    let files = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : [];
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    const {
+      _maxFileCount,
+      value
+    } = this.option();
+    if (_maxFileCount === undefined) {
+      return false;
+    }
+    const totalCount = files.length + ((value === null || value === void 0 ? void 0 : value.length) ?? 0);
+    const isFileLimitReached = totalCount > _maxFileCount;
+    return isFileLimitReached;
   }
   _shouldFileListBeExtended() {
     const {
@@ -154712,6 +155254,10 @@ class FileUploader extends _editor.default {
     const {
       value: files
     } = this.option();
+    if (this._isFileLimitReached()) {
+      var _this$_fileLimitReach2;
+      (_this$_fileLimitReach2 = this._fileLimitReachedAction) === null || _this$_fileLimitReach2 === void 0 || _this$_fileLimitReach2.call(this);
+    }
     if (this._files && ((files === null || files === void 0 ? void 0 : files.length) === 0 || !this._shouldFileListBeExtended())) {
       this._preventFilesUploading(this._files);
       this._files = null;
@@ -154817,6 +155363,11 @@ class FileUploader extends _editor.default {
   }
   _createCancelButtonClickAction() {
     this._cancelButtonClickAction = this._createActionByOption('onCancelButtonClick', {
+      excludeValidators: ['readOnly']
+    });
+  }
+  _createFileLimitReachedAction() {
+    this._fileLimitReachedAction = this._createActionByOption('onFileLimitReached', {
       excludeValidators: ['readOnly']
     });
   }
@@ -155334,15 +155885,18 @@ class FileUploader extends _editor.default {
     const fileList = e.originalEvent.dataTransfer.files;
     const files = this._getFiles(fileList);
     const {
-      multiple
+      multiple,
+      uploadMode
     } = this.option();
     if (!multiple && files.length > 1 || files.length === 0) {
       return;
     }
+    if (this._isFileLimitReached(files)) {
+      var _this$_fileLimitReach3;
+      (_this$_fileLimitReach3 = this._fileLimitReachedAction) === null || _this$_fileLimitReach3 === void 0 || _this$_fileLimitReach3.call(this);
+      return;
+    }
     this._changeValue(files);
-    const {
-      uploadMode
-    } = this.option();
     if (uploadMode === 'instantly') {
       this._uploadFiles();
     }
@@ -155712,6 +156266,8 @@ class FileUploader extends _editor.default {
       case '_showFileIcon':
         this._invalidate();
         break;
+      case '_maxFileCount':
+        break;
       case 'labelText':
         this._updateInputLabelText();
         break;
@@ -155771,6 +156327,9 @@ class FileUploader extends _editor.default {
         break;
       case 'onCancelButtonClick':
         this._createCancelButtonClickAction();
+        break;
+      case 'onFileLimitReached':
+        this._createFileLimitReachedAction();
         break;
       case 'useNativeInputClick':
         this._renderInput();
@@ -168735,7 +169294,7 @@ exports.isSmallScreen = isSmallScreen;
 Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
-exports["default"] = exports.INFORMER_CLASS = void 0;
+exports["default"] = exports.INFORMER_TEXT_CLASS = exports.INFORMER_CLASS = void 0;
 var _component_registrator = _interopRequireDefault(__webpack_require__(92848));
 var _renderer = _interopRequireDefault(__webpack_require__(64553));
 var _m_icon = __webpack_require__(42463);
@@ -168749,7 +169308,7 @@ const INFORMER_ALIGNMENT_START_CLASS = 'dx-informer-alignment-start';
 const INFORMER_ALIGNMENT_CENTER_CLASS = 'dx-informer-alignment-center';
 const INFORMER_ALIGNMENT_END_CLASS = 'dx-informer-alignment-end';
 const INFORMER_BG_CLASS = 'dx-informer-bg';
-const INFORMER_TEXT_CLASS = 'dx-informer-text';
+const INFORMER_TEXT_CLASS = exports.INFORMER_TEXT_CLASS = 'dx-informer-text';
 const INFORMER_ICON_CLASS = 'dx-informer-icon';
 class Informer extends _widget.default {
   _getDefaultOptions() {
@@ -199864,6 +200423,10 @@ class Splitter extends _collection_widget.default {
   getLayout() {
     return this._layout ?? [];
   }
+  _clean() {
+    _resize_observer.default.unobserve(this.$element().get(0));
+    super._clean();
+  }
 }
 Splitter.ItemClass = _splitter_item.default;
 (0, _component_registrator.default)('dxSplitter', Splitter);
@@ -207115,7 +207678,7 @@ exports.SingleLineStrategy = SingleLineStrategy;
 Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
-exports["default"] = void 0;
+exports["default"] = exports.TOOLBAR_BEFORE_CLASS = exports.TOOLBAR_AFTER_CLASS = void 0;
 var _animation = __webpack_require__(16826);
 var _component_registrator = _interopRequireDefault(__webpack_require__(92848));
 var _renderer = _interopRequireDefault(__webpack_require__(64553));
@@ -207129,9 +207692,9 @@ var _collection_widget = _interopRequireDefault(__webpack_require__(12191));
 var _constants = __webpack_require__(50634);
 function _interopRequireDefault(e) { return e && e.__esModule ? e : { default: e }; }
 function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
-const TOOLBAR_BEFORE_CLASS = 'dx-toolbar-before';
+const TOOLBAR_BEFORE_CLASS = exports.TOOLBAR_BEFORE_CLASS = 'dx-toolbar-before';
 const TOOLBAR_CENTER_CLASS = 'dx-toolbar-center';
-const TOOLBAR_AFTER_CLASS = 'dx-toolbar-after';
+const TOOLBAR_AFTER_CLASS = exports.TOOLBAR_AFTER_CLASS = 'dx-toolbar-after';
 const TOOLBAR_MINI_CLASS = 'dx-toolbar-mini';
 const TOOLBAR_ITEM_CLASS = 'dx-toolbar-item';
 const TOOLBAR_LABEL_CLASS = 'dx-toolbar-label';
@@ -265699,10 +266262,10 @@ viz.registerTheme = (__webpack_require__(84560).registerTheme);
 viz.exportFromMarkup = (__webpack_require__(88168).exportFromMarkup);
 viz.getMarkup = (__webpack_require__(88168).getMarkup);
 viz.exportWidgets = (__webpack_require__(88168).exportWidgets);
-viz.currentPalette = (__webpack_require__(9735).currentPalette);
-viz.getPalette = (__webpack_require__(9735).getPalette);
-viz.generateColors = (__webpack_require__(9735).generateColors);
-viz.registerPalette = (__webpack_require__(9735).registerPalette);
+viz.currentPalette = (__webpack_require__(9735)/* .currentPalette */ .pq);
+viz.getPalette = (__webpack_require__(9735)/* .getPalette */ .Sf);
+viz.generateColors = (__webpack_require__(9735)/* .generateColors */ .oC);
+viz.registerPalette = (__webpack_require__(9735)/* .registerPalette */ .hr);
 viz.refreshTheme = (__webpack_require__(84560).refreshTheme);
 
 /* Charts (dx.module-viz-charts.js) */
@@ -277590,6 +278153,7 @@ const defaultMessages = exports.defaultMessages = {
     "dxScheduler-appointmentAriaLabel-group": "Group: {0}",
     "dxScheduler-appointmentAriaLabel-recurring": "Recurring appointment",
     "dxScheduler-appointmentListAriaLabel": "Appointment list",
+    "dxScheduler-newPopupTitle": "New Appointment",
     "dxScheduler-editPopupTitle": "Edit Appointment",
     "dxScheduler-editPopupSaveButtonText": "Save",
     "dxScheduler-editorLabelTitle": "Subject",
@@ -277710,6 +278274,7 @@ const defaultMessages = exports.defaultMessages = {
     "dxChat-defaultImageAlt": "Image shared in chat",
     "dxChat-fileViewLabel": "File list",
     "dxChat-downloadButtonLabel": "Download file {0}",
+    "dxChat-fileLimitReachedWarning": "You selected too many files. Select no more than {0} files and retry.",
     "dxColorView-ariaRed": "Red",
     "dxColorView-ariaGreen": "Green",
     "dxColorView-ariaBlue": "Blue",
@@ -309461,17 +310026,47 @@ module.exports["default"] = exports.default;
 /***/ }),
 
 /***/ 74754:
-/***/ (function(module, exports, __webpack_require__) {
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
 
-exports["default"] = void 0;
-var Export = _interopRequireWildcard(__webpack_require__(43452));
-function _getRequireWildcardCache(e) { if ("function" != typeof WeakMap) return null; var r = new WeakMap(), t = new WeakMap(); return (_getRequireWildcardCache = function (e) { return e ? t : r; })(e); }
-function _interopRequireWildcard(e, r) { if (!r && e && e.__esModule) return e; if (null === e || "object" != typeof e && "function" != typeof e) return { default: e }; var t = _getRequireWildcardCache(r); if (t && t.has(e)) return t.get(e); var n = { __proto__: null }, a = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var u in e) if ("default" !== u && {}.hasOwnProperty.call(e, u)) { var i = a ? Object.getOwnPropertyDescriptor(e, u) : null; i && (i.get || i.set) ? Object.defineProperty(n, u, i) : n[u] = e[u]; } return n.default = e, t && t.set(e, n), n; }
-var _default = exports["default"] = Export;
-module.exports = exports.default;
-module.exports["default"] = exports.default;
+Object.defineProperty(exports, "ExportMenu", ({
+  enumerable: true,
+  get: function () {
+    return _export.ExportMenu;
+  }
+}));
+Object.defineProperty(exports, "combineMarkups", ({
+  enumerable: true,
+  get: function () {
+    return _export.combineMarkups;
+  }
+}));
+Object.defineProperty(exports, "exportFromMarkup", ({
+  enumerable: true,
+  get: function () {
+    return _export.exportFromMarkup;
+  }
+}));
+Object.defineProperty(exports, "exportWidgets", ({
+  enumerable: true,
+  get: function () {
+    return _export.exportWidgets;
+  }
+}));
+Object.defineProperty(exports, "getMarkup", ({
+  enumerable: true,
+  get: function () {
+    return _export.getMarkup;
+  }
+}));
+Object.defineProperty(exports, "plugin", ({
+  enumerable: true,
+  get: function () {
+    return _export.plugin;
+  }
+}));
+var _export = __webpack_require__(43452);
 
 /***/ }),
 
@@ -309884,17 +310479,60 @@ module.exports["default"] = exports.default;
 /***/ }),
 
 /***/ 9735:
-/***/ (function(module, exports, __webpack_require__) {
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+var __webpack_unused_export__;
 
 
-
-exports["default"] = void 0;
-var PaletteModule = _interopRequireWildcard(__webpack_require__(79121));
-function _getRequireWildcardCache(e) { if ("function" != typeof WeakMap) return null; var r = new WeakMap(), t = new WeakMap(); return (_getRequireWildcardCache = function (e) { return e ? t : r; })(e); }
-function _interopRequireWildcard(e, r) { if (!r && e && e.__esModule) return e; if (null === e || "object" != typeof e && "function" != typeof e) return { default: e }; var t = _getRequireWildcardCache(r); if (t && t.has(e)) return t.get(e); var n = { __proto__: null }, a = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var u in e) if ("default" !== u && {}.hasOwnProperty.call(e, u)) { var i = a ? Object.getOwnPropertyDescriptor(e, u) : null; i && (i.get || i.set) ? Object.defineProperty(n, u, i) : n[u] = e[u]; } return n.default = e, t && t.set(e, n), n; }
-var _default = exports["default"] = PaletteModule;
-module.exports = exports.default;
-module.exports["default"] = exports.default;
+__webpack_unused_export__ = ({
+  enumerable: true,
+  get: function () {
+    return _palette.createPalette;
+  }
+});
+Object.defineProperty(exports, "pq", ({
+  enumerable: true,
+  get: function () {
+    return _palette.currentPalette;
+  }
+}));
+Object.defineProperty(exports, "oC", ({
+  enumerable: true,
+  get: function () {
+    return _palette.generateColors;
+  }
+}));
+__webpack_unused_export__ = ({
+  enumerable: true,
+  get: function () {
+    return _palette.getAccentColor;
+  }
+});
+__webpack_unused_export__ = ({
+  enumerable: true,
+  get: function () {
+    return _palette.getDiscretePalette;
+  }
+});
+__webpack_unused_export__ = ({
+  enumerable: true,
+  get: function () {
+    return _palette.getGradientPalette;
+  }
+});
+Object.defineProperty(exports, "Sf", ({
+  enumerable: true,
+  get: function () {
+    return _palette.getPalette;
+  }
+}));
+Object.defineProperty(exports, "hr", ({
+  enumerable: true,
+  get: function () {
+    return _palette.registerPalette;
+  }
+}));
+var _palette = __webpack_require__(79121);
 
 /***/ }),
 
