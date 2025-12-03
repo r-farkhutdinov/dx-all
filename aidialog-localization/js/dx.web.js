@@ -203632,7 +203632,7 @@ if (_devextremeQuill.default) {
       const item = {
         id: command,
         name: command,
-        text: text ?? _ai.defaultCommandNames[command],
+        text: text ?? (0, _ai.getDefaultCommandName)(command),
         items: options === null || options === void 0 ? void 0 : options.map(option => ({
           id: option,
           text: option,
@@ -203696,7 +203696,7 @@ if (_devextremeQuill.default) {
       var _dataSource$0$items;
       const {
         name = TOOLBAR_AI_ITEM_NAME,
-        commands = Object.keys(_ai.defaultCommandNames)
+        commands = Object.keys(_ai.commandMessageKeys)
       } = item;
       const commandsMap = (0, _ai.buildCommandsMap)(commands);
       const menuItems = this._buildMenuItems(commands);
@@ -205130,22 +205130,30 @@ var _default = exports["default"] = BaseDialog;
 Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
-exports.hasInvalidCustomCommand = exports.getDefaultOptionsByCommand = exports.getAICommandName = exports.defaultCommandNames = exports.buildCommandsMap = exports.buildAICommandParams = exports.AI_DIALOG_CUSTOM_COMMAND_NAME = exports.AI_DIALOG_ASKAI_COMMAND_NAME = void 0;
+exports.hasInvalidCustomCommand = exports.getDefaultOptionsByCommand = exports.getDefaultCommandName = exports.getAICommandName = exports.commandMessageKeys = exports.buildCommandsMap = exports.buildAICommandParams = exports.AI_DIALOG_CUSTOM_COMMAND_NAME = exports.AI_DIALOG_ASKAI_COMMAND_NAME = void 0;
 var _message = _interopRequireDefault(__webpack_require__(4671));
 var _capitalize = __webpack_require__(72928);
 function _interopRequireDefault(e) { return e && e.__esModule ? e : { default: e }; }
 const AI_DIALOG_ASKAI_COMMAND_NAME = exports.AI_DIALOG_ASKAI_COMMAND_NAME = 'askAI';
 const AI_DIALOG_CUSTOM_COMMAND_NAME = exports.AI_DIALOG_CUSTOM_COMMAND_NAME = 'custom';
-const defaultCommandNames = exports.defaultCommandNames = {
-  summarize: _message.default.format('dxHtmlEditor-aiCommandSummarize'),
-  proofread: _message.default.format('dxHtmlEditor-aiCommandProofread'),
-  expand: _message.default.format('dxHtmlEditor-aiCommandExpand'),
-  shorten: _message.default.format('dxHtmlEditor-aiCommandShorten'),
-  changeStyle: _message.default.format('dxHtmlEditor-aiCommandChangeStyle'),
-  changeTone: _message.default.format('dxHtmlEditor-aiCommandChangeTone'),
-  translate: _message.default.format('dxHtmlEditor-aiCommandTranslate'),
-  askAI: _message.default.format('dxHtmlEditor-aiCommandAskAI')
+const commandMessageKeys = exports.commandMessageKeys = {
+  summarize: 'dxHtmlEditor-aiCommandSummarize',
+  proofread: 'dxHtmlEditor-aiCommandProofread',
+  expand: 'dxHtmlEditor-aiCommandExpand',
+  shorten: 'dxHtmlEditor-aiCommandShorten',
+  changeStyle: 'dxHtmlEditor-aiCommandChangeStyle',
+  changeTone: 'dxHtmlEditor-aiCommandChangeTone',
+  translate: 'dxHtmlEditor-aiCommandTranslate',
+  askAI: 'dxHtmlEditor-aiCommandAskAI'
 };
+const getDefaultCommandName = name => {
+  const key = commandMessageKeys[name];
+  if (key) {
+    return _message.default.format(key);
+  }
+  return (0, _capitalize.capitalize)(name);
+};
+exports.getDefaultCommandName = getDefaultCommandName;
 const htmlEditorAIChangeStyleOptions = ['formal', 'informal', 'technical', 'business', 'creative', 'journalistic', 'academic', 'persuasive', 'narrative', 'expository', 'descriptive', 'conversational'];
 const htmlEditorAIChangeToneOptions = ['professional', 'casual', 'straightforward', 'confident', 'friendly'];
 const htmlEditorAITranslateOptions = ['arabic', 'chinese', 'english', 'french', 'german', 'japanese', 'spanish'];
@@ -205173,7 +205181,7 @@ const getDefaultOptionsByCommand = command => {
 exports.getDefaultOptionsByCommand = getDefaultOptionsByCommand;
 const createDefinitionFromString = commandName => {
   var _getDefaultOptionsByC;
-  const text = defaultCommandNames[commandName] ?? (0, _capitalize.capitalize)(commandName);
+  const text = getDefaultCommandName(commandName);
   const defaultOptions = (_getDefaultOptionsByC = getDefaultOptionsByCommand(commandName)) === null || _getDefaultOptionsByC === void 0 ? void 0 : _getDefaultOptionsByC.map(_capitalize.capitalize);
   return {
     id: commandName,
@@ -205186,7 +205194,7 @@ const createDefinitionFromObject = (id, name, text, rawOptions, prompt) => {
   var _getDefaultOptionsByC2;
   const capitalizedRaw = rawOptions === null || rawOptions === void 0 ? void 0 : rawOptions.map(_capitalize.capitalize);
   const options = capitalizedRaw ?? ((_getDefaultOptionsByC2 = getDefaultOptionsByCommand(name)) === null || _getDefaultOptionsByC2 === void 0 ? void 0 : _getDefaultOptionsByC2.map(_capitalize.capitalize));
-  const displayText = text ?? defaultCommandNames[name] ?? (0, _capitalize.capitalize)(name);
+  const displayText = text ?? getDefaultCommandName(name);
   const definition = {
     id,
     name,
